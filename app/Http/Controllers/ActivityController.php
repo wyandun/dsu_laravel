@@ -19,12 +19,19 @@ class ActivityController extends Controller
         if ($user->isJefe()) {
             // Los jefes pueden ver todas las actividades
             $activities = Activity::with('user')->orderBy('fecha_actividad', 'desc')->paginate(15);
+            return view('activities.index', compact('activities'));
         } else {
-            // Los empleados solo ven sus propias actividades
-            $activities = Activity::forUser($user->id)->orderBy('fecha_actividad', 'desc')->paginate(15);
+            // Los empleados ven sus actividades agrupadas por fecha
+            $activities = Activity::forUser($user->id)
+                ->orderBy('fecha_actividad', 'desc')
+                ->get();
+            
+            $activitiesGrouped = $activities->groupBy(function($activity) {
+                return $activity->fecha_actividad->format('Y-m-d');
+            });
+            
+            return view('activities.employee-index', compact('activitiesGrouped'));
         }
-        
-        return view('activities.index', compact('activities'));
     }
 
     /**
@@ -46,9 +53,10 @@ class ActivityController extends Controller
             'numero_referencia' => 'nullable|string|max:255',
             'tiempo' => 'required|numeric|min:0.01|max:999.99',
             'observaciones' => 'nullable|string',
-            'fecha_actividad' => 'required|date',
         ]);
 
+        // Usar automáticamente la fecha actual
+        $validated['fecha_actividad'] = Carbon::today();
         $validated['user_id'] = Auth::id();
 
         Activity::create($validated);
@@ -106,8 +114,15 @@ class ActivityController extends Controller
             'numero_referencia' => 'nullable|string|max:255',
             'tiempo' => 'required|numeric|min:0.01|max:999.99',
             'observaciones' => 'nullable|string',
-            'fecha_actividad' => 'required|date',
         ]);
+
+        // Solo los jefes pueden modificar la fecha
+        if (Auth::user()->isJefe()) {
+            $request->validate([
+                'fecha_actividad' => 'required|date',
+            ]);
+            $validated['fecha_actividad'] = $request->fecha_actividad;
+        }
 
         $activity->update($validated);
 

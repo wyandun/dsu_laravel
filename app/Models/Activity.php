@@ -21,9 +21,35 @@ class Activity extends Model
     ];
 
     protected $casts = [
-        'fecha_actividad' => 'date',
+        'fecha_actividad' => 'datetime',
         'tiempo' => 'decimal:2',
     ];
+
+    /**
+     * Boot method para aplicar validaciones automáticas
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($activity) {
+            $activity->cleanWhitespace();
+        });
+
+        static::updating(function ($activity) {
+            $activity->cleanWhitespace();
+        });
+    }
+
+    /**
+     * Limpiar espacios en blanco al inicio y final
+     */
+    public function cleanWhitespace()
+    {
+        $this->titulo = trim($this->titulo);
+        $this->numero_referencia = trim($this->numero_referencia);
+        $this->observaciones = trim($this->observaciones);
+    }
 
     /**
      * Relación con usuario
@@ -38,7 +64,7 @@ class Activity extends Model
      */
     public function isToday()
     {
-        return $this->fecha_actividad === Carbon::today()->toDateString();
+        return $this->fecha_actividad->format('Y-m-d') === Carbon::today()->format('Y-m-d');
     }
 
     /**
@@ -55,5 +81,46 @@ class Activity extends Model
     public function scopeForUser($query, $userId)
     {
         return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Scope para actividades por tipo
+     */
+    public function scopeByType($query, $type)
+    {
+        return $query->where('tipo', $type);
+    }
+
+    /**
+     * Scope para actividades por número de referencia
+     */
+    public function scopeByReference($query, $reference)
+    {
+        return $query->where('numero_referencia', $reference);
+    }
+
+    /**
+     * Scope para actividades colaborativas (mismo tipo y referencia)
+     */
+    public function scopeCollaborative($query, $type, $reference)
+    {
+        return $query->where('tipo', $type)
+                    ->where('numero_referencia', $reference)
+                    ->whereNotNull('numero_referencia')
+                    ->where('numero_referencia', '!=', '');
+    }
+
+    /**
+     * Obtener tipos de actividad disponibles
+     */
+    public static function getTipos()
+    {
+        return [
+            'Quipux',
+            'Mantis', 
+            'CTIT',
+            'Correo',
+            'Otros'
+        ];
     }
 }

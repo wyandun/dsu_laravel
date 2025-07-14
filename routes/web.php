@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\CollaborativeReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -26,6 +27,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:jefe')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::post('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+        
+        // Rutas de reportes colaborativos
+        Route::get('/collaborative-reports', [CollaborativeReportController::class, 'index'])->name('collaborative-reports.index');
+        Route::get('/collaborative-reports/export', [CollaborativeReportController::class, 'export'])->name('collaborative-reports.export');
     });
 });
 

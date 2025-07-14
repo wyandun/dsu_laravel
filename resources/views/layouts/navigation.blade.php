@@ -22,6 +22,9 @@
                         <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                             {{ __('Reportes') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('collaborative-reports.index')" :active="request()->routeIs('collaborative-reports.*')">
+                            {{ __('Reportes Colaborativos') }}
+                        </x-nav-link>
                     @endif
                 </div>
             </div>
@@ -84,6 +87,9 @@
             @if(auth()->user()->isJefe())
                 <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                     {{ __('Reportes') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('collaborative-reports.index')" :active="request()->routeIs('collaborative-reports.*')">
+                    {{ __('Reportes Colaborativos') }}
                 </x-responsive-nav-link>
             @endif
         </div>
