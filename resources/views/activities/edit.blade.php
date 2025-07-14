@@ -36,11 +36,11 @@
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" 
                                     required>
                                 <option value="">Selecciona un tipo</option>
-                                <option value="Quipux" {{ old('tipo', $activity->tipo) == 'Quipux' ? 'selected' : '' }}>Quipux</option>
-                                <option value="Mantis" {{ old('tipo', $activity->tipo) == 'Mantis' ? 'selected' : '' }}>Mantis</option>
-                                <option value="CTIT" {{ old('tipo', $activity->tipo) == 'CTIT' ? 'selected' : '' }}>CTIT</option>
-                                <option value="Correo" {{ old('tipo', $activity->tipo) == 'Correo' ? 'selected' : '' }}>Correo</option>
-                                <option value="Otros" {{ old('tipo', $activity->tipo) == 'Otros' ? 'selected' : '' }}>Otros</option>
+                                @foreach(\App\Enums\ActivityType::cases() as $tipo)
+                                    <option value="{{ $tipo->value }}" {{ old('tipo', $activity->tipo) == $tipo->value ? 'selected' : '' }}>
+                                        {{ $tipo->value }}
+                                    </option>
+                                @endforeach
                             </select>
                             @error('tipo')
                                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>

@@ -15,12 +15,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('titulo');
-            $table->enum('tipo', ['Quipux', 'Mantis', 'CTIT', 'Correo', 'Otros']);
+            $table->string('tipo'); // Quipux, Mantis, CTIT, Correo, Otros
             $table->string('numero_referencia')->nullable();
-            $table->decimal('tiempo', 5, 2); // 5 dígitos totales, 2 decimales
+            $table->decimal('tiempo', 5, 2); // Tiempo en horas con 2 decimales
             $table->text('observaciones')->nullable();
-            $table->date('fecha_actividad')->default(now()->toDateString());
+            $table->date('fecha_actividad');
             $table->timestamps();
+
+            // Índices para mejorar performance en consultas frecuentes
+            $table->index(['user_id', 'fecha_actividad']);
+            $table->index(['tipo', 'numero_referencia']);
+            $table->index('fecha_actividad');
         });
     }
 

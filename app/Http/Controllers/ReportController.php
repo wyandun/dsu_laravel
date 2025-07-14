@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Enums\ActivityType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
@@ -16,20 +17,15 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         
-        // Solo los jefes pueden acceder a los reportes
-        if (!$user->isJefe()) {
+        // Solo los jefes y administradores pueden acceder a los reportes
+        if (!$user->isJefe() && !$user->isAdministrador()) {
             abort(403, 'No tienes permisos para acceder a los reportes.');
         }
 
         $query = Activity::with('user');
         
-        // Filtrar según el tipo de jefe
-        if ($user->isDirector()) {
-            // El director solo ve empleados de su dirección
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $query->whereIn('user_id', $empleadosIds);
-        } elseif ($user->isCoordinador()) {
-            // El coordinador ve empleados de todas las direcciones de su coordinación
+        // Aplicar filtros jerárquicos solo si NO es administrador
+        if (!$user->isAdministrador()) {
             $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
             $query->whereIn('user_id', $empleadosIds);
         }
@@ -40,8 +36,8 @@ class ReportController extends Controller
         }
         
         if ($request->filled('direccion')) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('direccion', $request->direccion);
+            $query->whereHas('user.direccion', function($q) use ($request) {
+                $q->where('nombre', $request->direccion);
             });
         }
         
@@ -73,16 +69,24 @@ class ReportController extends Controller
                            ->orderBy('created_at', 'desc')
                            ->paginate(15);
 
-        // Obtener datos para los filtros basados en la supervisión del jefe
-        $users = $user->getEmpleadosBajoSupervision()->sortBy('name');
-        
-        $direcciones = $users->pluck('direccion')
-                            ->unique()
-                            ->filter()
-                            ->sort()
-                            ->values();
+        // Obtener datos para los filtros basados en la supervisión del jefe o todos si es admin
+        if ($user->isAdministrador()) {
+            $users = User::where('role', 'empleado')->orderBy('name')->get();
+            $direcciones = User::getDirecciones();
+        } else {
+            $users = $user->getEmpleadosBajoSupervision()->sortBy('name');
+            $direcciones = $users->filter(function($user) {
+                    return $user->direccion;
+                })
+                ->map(function($user) {
+                    return $user->direccion->nombre;
+                })
+                ->unique()
+                ->sort()
+                ->values();
+        }
                             
-        $tipos = ['Quipux', 'Mantis', 'CTIT', 'Correo', 'Otros'];
+        $tipos = ActivityType::toArray();
 
         // Estadísticas
         $totalActividades = $query->count();
@@ -102,17 +106,14 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->isJefe()) {
+        if (!$user->isJefe() && !$user->isAdministrador()) {
             abort(403, 'No tienes permisos para exportar reportes.');
         }
 
         $query = Activity::with('user');
         
-        // Filtrar según el tipo de jefe
-        if ($user->isDirector()) {
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $query->whereIn('user_id', $empleadosIds);
-        } elseif ($user->isCoordinador()) {
+        // Aplicar filtros jerárquicos solo si NO es administrador
+        if (!$user->isAdministrador()) {
             $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
             $query->whereIn('user_id', $empleadosIds);
         }
@@ -123,8 +124,8 @@ class ReportController extends Controller
         }
         
         if ($request->filled('direccion')) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('direccion', $request->direccion);
+            $query->whereHas('user.direccion', function($q) use ($request) {
+                $q->where('nombre', $request->direccion);
             });
         }
         

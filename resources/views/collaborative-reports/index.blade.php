@@ -38,14 +38,9 @@
                             <!-- Número de Referencia -->
                             <div>
                                 <label for="numero_referencia" class="block text-sm font-medium text-gray-700">Número de Referencia</label>
-                                <select name="numero_referencia" id="numero_referencia" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">Todas las referencias</option>
-                                    @foreach($referencias as $referencia)
-                                        <option value="{{ $referencia }}" {{ request('numero_referencia') == $referencia ? 'selected' : '' }}>
-                                            {{ $referencia }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <input type="text" name="numero_referencia" id="numero_referencia" value="{{ request('numero_referencia') }}" 
+                                       placeholder="Buscar por número de referencia..."
+                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                             </div>
 
                             <!-- Búsqueda -->
@@ -80,13 +75,30 @@
                             </a>
                         </div>
                     </form>
+
+                    <!-- Información sobre filtros -->
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>Paginación:</strong> Se muestran 10 grupos por página para mejor rendimiento. 
+                                    Use los filtros para encontrar grupos específicos.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Estadísticas -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6 text-gray-900">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div class="text-center">
                             <div class="text-3xl font-bold text-blue-600">{{ $totalGrupos }}</div>
                             <div class="text-gray-600">Grupos Colaborativos</div>
@@ -99,7 +111,22 @@
                             <div class="text-3xl font-bold text-green-600">{{ number_format($totalTiempo, 2) }}</div>
                             <div class="text-gray-600">Total de Horas</div>
                         </div>
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-orange-600">
+                                {{ $collaborativeGroups->currentPage() }} / {{ $collaborativeGroups->lastPage() }}
+                            </div>
+                            <div class="text-gray-600">Páginas ({{ $collaborativeGroups->count() }} grupos mostrados)</div>
+                        </div>
                     </div>
+
+                    @if($collaborativeGroups->hasPages())
+                        <div class="mt-4 text-center">
+                            <p class="text-sm text-gray-600">
+                                Mostrando {{ $collaborativeGroups->firstItem() }} a {{ $collaborativeGroups->lastItem() }} 
+                                de {{ $collaborativeGroups->total() }} grupos colaborativos
+                            </p>
+                        </div>
+                    @endif
                 </div>
             </div>
 

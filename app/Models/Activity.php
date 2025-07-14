@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Carbon\Carbon;
+use App\Enums\ActivityType;
 
 class Activity extends Model
 {
@@ -115,12 +116,6 @@ class Activity extends Model
      */
     public static function getTipos()
     {
-        return [
-            'Quipux',
-            'Mantis', 
-            'CTIT',
-            'Correo',
-            'Otros'
-        ];
+        return ActivityType::toArray();
     }
 }

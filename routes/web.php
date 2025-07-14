@@ -23,8 +23,8 @@ Route::middleware('auth')->group(function () {
     // Rutas de actividades - disponibles para todos los usuarios autenticados
     Route::resource('activities', ActivityController::class);
     
-    // Rutas de reportes - solo para jefes
-    Route::middleware('role:jefe')->group(function () {
+    // Rutas de reportes - solo para jefes y administradores
+    Route::middleware('reports')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
         Route::post('/reports/export', [ReportController::class, 'export'])->name('reports.export');
         

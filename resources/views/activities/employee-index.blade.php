@@ -101,12 +101,11 @@
                                                         {{ $activity->titulo }}
                                                     </h4>
                                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                                        @if($activity->tipo == 'Quipux') bg-blue-100 text-blue-800
-                                                        @elseif($activity->tipo == 'Mantis') bg-red-100 text-red-800
-                                                        @elseif($activity->tipo == 'CTIT') bg-green-100 text-green-800
-                                                        @elseif($activity->tipo == 'Correo') bg-yellow-100 text-yellow-800
-                                                        @else bg-gray-100 text-gray-800
-                                                        @endif">
+                                                        @php
+                                                            $tipoEnum = \App\Enums\ActivityType::from($activity->tipo);
+                                                            $color = $tipoEnum->getColor();
+                                                        @endphp
+                                                        bg-{{ $color }}-100 text-{{ $color }}-800">
                                                         {{ $activity->tipo }}
                                                     </span>
                                                     <span class="text-sm font-medium text-gray-700">

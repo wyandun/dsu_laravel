@@ -6,6 +6,7 @@ use App\Models\Activity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
+use App\Enums\ActivityType;
 
 class ActivityController extends Controller
 {
@@ -49,7 +50,7 @@ class ActivityController extends Controller
     {
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
-            'tipo' => 'required|in:Quipux,Mantis,CTIT,Correo,Otros',
+            'tipo' => 'required|in:' . implode(',', ActivityType::toArray()),
             'numero_referencia' => 'nullable|string|max:255',
             'tiempo' => 'required|numeric|min:0.01|max:999.99',
             'observaciones' => 'nullable|string',
@@ -110,7 +111,7 @@ class ActivityController extends Controller
 
         $validated = $request->validate([
             'titulo' => 'required|string|max:255',
-            'tipo' => 'required|in:Quipux,Mantis,CTIT,Correo,Otros',
+            'tipo' => 'required|in:' . implode(',', ActivityType::toArray()),
             'numero_referencia' => 'nullable|string|max:255',
             'tiempo' => 'required|numeric|min:0.01|max:999.99',
             'observaciones' => 'nullable|string',

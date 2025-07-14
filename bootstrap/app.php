@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'csrf.handle' => \App\Http\Middleware\HandleCsrfExceptions::class,
+            'reports' => \App\Http\Middleware\CheckReportAccess::class,
         ]);
         
         // Agregar el middleware CSRF personalizado a la web

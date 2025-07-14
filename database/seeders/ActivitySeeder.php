@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Enums\ActivityType;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Carbon\Carbon;
@@ -16,7 +17,7 @@ class ActivitySeeder extends Seeder
     public function run(): void
     {
         $empleados = User::where('role', 'empleado')->get();
-        $tipos = ['Quipux', 'Mantis', 'CTIT', 'Correo', 'Otros'];
+        $tipos = ActivityType::toArray();
 
         // Referencias colaborativas para simular proyectos en equipo
         $referenciasColaborativas = [

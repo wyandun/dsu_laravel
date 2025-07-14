@@ -42,10 +42,10 @@ class ActivitiesExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function map($activity): array
     {
         return [
-            $activity->created_at->format('Y-m-d'),
+            $activity->fecha_actividad->format('Y-m-d'),
             $activity->user->name,
-            $activity->user->coordinacion ?? 'No especificada',
-            $activity->user->direccion ?? 'No especificada',
+            $activity->user->direccion ? $activity->user->direccion->coordinacion->nombre : 'No especificada',
+            $activity->user->direccion ? $activity->user->direccion->nombre : 'No especificada',
             $activity->titulo,
             $activity->tipo,
             $activity->numero_referencia,

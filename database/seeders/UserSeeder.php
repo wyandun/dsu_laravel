@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Coordinacion;
+use App\Models\Direccion;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -30,15 +32,36 @@ class UserSeeder extends Seeder
         // Limpiar usuarios existentes
         User::truncate();
 
-        // Crear coordinador de TICS
+        // Obtener referencias a coordinaciones y direcciones
+        $coordinacionTics = Coordinacion::where('codigo', 'TICS')->first();
+        
+        $direccionSeguridad = Direccion::where('codigo', 'DSEG')->first();
+        $direccionInfraestructura = Direccion::where('codigo', 'DINF')->first();
+        $direccionDesarrollo = Direccion::where('codigo', 'DDES')->first();
+        $direccionServicios = Direccion::where('codigo', 'DGSI')->first();
+
+        if (!$coordinacionTics || !$direccionSeguridad || !$direccionInfraestructura || !$direccionDesarrollo || !$direccionServicios) {
+            throw new \Exception('Debe ejecutar CoordinacionSeeder y DireccionSeeder antes que UserSeeder');
+        }
+
+        // Crear administrador general del sistema
+        User::create([
+            'name' => 'Administrador General',
+            'email' => 'admin@sistema.com',
+            'password' => Hash::make('password'),
+            'role' => 'administrador',
+            'tipo_jefe' => null,
+            'direccion_id' => null,
+        ]);
+
+        // Crear coordinador de TICS (sin dirección específica)
         User::create([
             'name' => 'Coordinador TICS',
             'email' => 'coordinador.tics@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'jefe',
             'tipo_jefe' => 'coordinador',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => null, // El coordinador supervisa todas las direcciones
+            'direccion_id' => null, // El coordinador supervisa todas las direcciones de la coordinación
         ]);
 
         // Crear directores de cada dirección
@@ -48,8 +71,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'jefe',
             'tipo_jefe' => 'director',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Seguridad',
+            'direccion_id' => $direccionSeguridad->id,
         ]);
 
         User::create([
@@ -58,8 +80,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'jefe',
             'tipo_jefe' => 'director',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Infraestructura',
+            'direccion_id' => $direccionInfraestructura->id,
         ]);
 
         User::create([
@@ -68,8 +89,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'jefe',
             'tipo_jefe' => 'director',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Desarrollo de Soluciones',
+            'direccion_id' => $direccionDesarrollo->id,
         ]);
 
         User::create([
@@ -78,8 +98,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'jefe',
             'tipo_jefe' => 'director',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Gestión de Servicios Informáticos',
+            'direccion_id' => $direccionServicios->id,
         ]);
 
         // Crear empleados de Dirección de Seguridad
@@ -88,8 +107,7 @@ class UserSeeder extends Seeder
             'email' => 'juan.perez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Seguridad',
+            'direccion_id' => $direccionSeguridad->id,
         ]);
 
         User::create([
@@ -97,8 +115,7 @@ class UserSeeder extends Seeder
             'email' => 'ana.martinez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Seguridad',
+            'direccion_id' => $direccionSeguridad->id,
         ]);
 
         // Crear empleados de Dirección de Infraestructura
@@ -107,8 +124,7 @@ class UserSeeder extends Seeder
             'email' => 'carlos.lopez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Infraestructura',
+            'direccion_id' => $direccionInfraestructura->id,
         ]);
 
         User::create([
@@ -116,8 +132,7 @@ class UserSeeder extends Seeder
             'email' => 'maria.garcia@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Infraestructura',
+            'direccion_id' => $direccionInfraestructura->id,
         ]);
 
         // Crear empleados de Dirección de Desarrollo de Soluciones
@@ -126,8 +141,7 @@ class UserSeeder extends Seeder
             'email' => 'luis.rodriguez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Desarrollo de Soluciones',
+            'direccion_id' => $direccionDesarrollo->id,
         ]);
 
         User::create([
@@ -135,8 +149,7 @@ class UserSeeder extends Seeder
             'email' => 'carmen.sanchez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Desarrollo de Soluciones',
+            'direccion_id' => $direccionDesarrollo->id,
         ]);
 
         // Crear empleados de Dirección de Gestión de Servicios
@@ -145,8 +158,7 @@ class UserSeeder extends Seeder
             'email' => 'pedro.fernandez@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Gestión de Servicios Informáticos',
+            'direccion_id' => $direccionServicios->id,
         ]);
 
         User::create([
@@ -154,8 +166,7 @@ class UserSeeder extends Seeder
             'email' => 'laura.torres@sistema.com',
             'password' => Hash::make('password'),
             'role' => 'empleado',
-            'coordinacion' => 'Coordinación de TICS',
-            'direccion' => 'Dirección de Gestión de Servicios Informáticos',
+            'direccion_id' => $direccionServicios->id,
         ]);
     }
 }

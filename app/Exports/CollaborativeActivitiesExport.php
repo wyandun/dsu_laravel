@@ -38,7 +38,7 @@ class CollaborativeActivitiesExport implements FromCollection, WithHeadings, Wit
                 'total_activities' => $activitiesInGroup->count(),
                 'total_participants' => $activitiesInGroup->pluck('user_id')->unique()->count(),
                 'total_time' => $activitiesInGroup->sum('tiempo'),
-                'date_range' => $activitiesInGroup->min('fecha_actividad') . ' - ' . $activitiesInGroup->max('fecha_actividad')
+                'date_range' => $activitiesInGroup->min('fecha_actividad')->format('Y-m-d') . ' - ' . $activitiesInGroup->max('fecha_actividad')->format('Y-m-d')
             ]);
 
             // Agregar actividades del grupo
@@ -91,10 +91,10 @@ class CollaborativeActivitiesExport implements FromCollection, WithHeadings, Wit
         }
 
         return [
-            $row->fecha_actividad,
+            $row->fecha_actividad->format('Y-m-d'),
             $row->user->name,
-            $row->user->coordinacion ?? 'No especificada',
-            $row->user->direccion ?? 'No especificada',
+            $row->user->direccion ? $row->user->direccion->coordinacion->nombre : 'No especificada',
+            $row->user->direccion ? $row->user->direccion->nombre : 'No especificada',
             $row->titulo,
             $row->tipo,
             $row->numero_referencia,

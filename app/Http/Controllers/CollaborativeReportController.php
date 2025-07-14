@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\User;
+use App\Enums\ActivityType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +18,8 @@ class CollaborativeReportController extends Controller
     {
         $user = Auth::user();
         
-        // Solo los jefes pueden acceder a los reportes
-        if (!$user->isJefe()) {
+        // Solo los jefes y administradores pueden acceder a los reportes
+        if (!$user->isJefe() && !$user->isAdministrador()) {
             abort(403, 'No tienes permisos para acceder a los reportes colaborativos.');
         }
 
@@ -28,11 +29,8 @@ class CollaborativeReportController extends Controller
             ->where('numero_referencia', '!=', '')
             ->where('numero_referencia', '!=', 'N/A');
 
-        // Filtrar según el tipo de jefe (aplicar permisos jerárquicos)
-        if ($user->isDirector()) {
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $query->whereIn('user_id', $empleadosIds);
-        } elseif ($user->isCoordinador()) {
+        // Aplicar filtros jerárquicos solo si NO es administrador
+        if (!$user->isAdministrador()) {
             $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
             $query->whereIn('user_id', $empleadosIds);
         }
@@ -78,46 +76,28 @@ class CollaborativeReportController extends Controller
             ->groupBy('tipo', 'numero_referencia')
             ->orderBy('tipo')
             ->orderBy('numero_referencia')
-            ->paginate(15);
+            ->paginate(10); // Reducir a 10 grupos por página
 
         // Para cada grupo, obtener los participantes
         foreach ($collaborativeGroups as $group) {
-            $group->participantes = Activity::with('user')
+            $participantesQuery = Activity::with('user')
                 ->where('tipo', $group->tipo)
-                ->where('numero_referencia', $group->numero_referencia)
-                ->when($user->isDirector(), function($q) use ($user) {
-                    $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-                    return $q->whereIn('user_id', $empleadosIds);
-                })
-                ->when($user->isCoordinador(), function($q) use ($user) {
-                    $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-                    return $q->whereIn('user_id', $empleadosIds);
-                })
+                ->where('numero_referencia', $group->numero_referencia);
+                
+            // Aplicar filtros jerárquicos solo si NO es administrador
+            if (!$user->isAdministrador()) {
+                $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
+                $participantesQuery->whereIn('user_id', $empleadosIds);
+            }
+            
+            $group->participantes = $participantesQuery
                 ->select('user_id', DB::raw('COUNT(*) as actividades_count'), DB::raw('SUM(tiempo) as tiempo_total'))
                 ->groupBy('user_id')
                 ->get();
         }
 
         // Obtener datos para los filtros
-        $tipos = Activity::getTipos();
-        
-        // Referencias disponibles basadas en permisos
-        $referenciasQuery = Activity::whereNotNull('numero_referencia')
-            ->where('numero_referencia', '!=', '')
-            ->where('numero_referencia', '!=', 'N/A');
-            
-        if ($user->isDirector()) {
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $referenciasQuery->whereIn('user_id', $empleadosIds);
-        } elseif ($user->isCoordinador()) {
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $referenciasQuery->whereIn('user_id', $empleadosIds);
-        }
-        
-        $referencias = $referenciasQuery->distinct()
-            ->pluck('numero_referencia')
-            ->sort()
-            ->take(50); // Limitar a 50 para performance
+        $tipos = ActivityType::toArray();
 
         // Estadísticas generales
         $totalGrupos = $collaborativeGroups->total();
@@ -127,7 +107,6 @@ class CollaborativeReportController extends Controller
         return view('collaborative-reports.index', compact(
             'collaborativeGroups',
             'tipos',
-            'referencias',
             'totalGrupos',
             'totalActividades',
             'totalTiempo'
@@ -138,7 +117,7 @@ class CollaborativeReportController extends Controller
     {
         $user = Auth::user();
         
-        if (!$user->isJefe()) {
+        if (!$user->isJefe() && !$user->isAdministrador()) {
             abort(403, 'No tienes permisos para exportar reportes colaborativos.');
         }
 
@@ -148,11 +127,8 @@ class CollaborativeReportController extends Controller
             ->where('numero_referencia', '!=', '')
             ->where('numero_referencia', '!=', 'N/A');
 
-        // Filtrar según el tipo de jefe
-        if ($user->isDirector()) {
-            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
-            $query->whereIn('user_id', $empleadosIds);
-        } elseif ($user->isCoordinador()) {
+        // Aplicar filtros jerárquicos solo si NO es administrador
+        if (!$user->isAdministrador()) {
             $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
             $query->whereIn('user_id', $empleadosIds);
         }
