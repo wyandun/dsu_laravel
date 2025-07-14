@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # ================================
+  # Aplicación Laravel
+  # ================================
+  app:
+    build:
+      context: .
+      target: production
+    container_name: dsu_laravel_app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./storage:/var/www/html/storage
+      - ./database/database.sqlite:/var/www/html/database/database.sqlite
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+    networks:
+      - dsu_network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # Redis para caché y sesiones
+  # ================================
+  redis:
+    image: redis:7-alpine
+    container_name: dsu_laravel_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - dsu_network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ================================
+  # Base de datos MySQL (opcional)
+  # ================================
+  mysql:
+    image: mysql:8.0
+    container_name: dsu_laravel_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: dsu_laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dsu_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - mysql
+
+  # ================================
+  # Nginx Load Balancer (para múltiples instancias)
+  # ================================
+  nginx-lb:
+    image: nginx:alpine
+    container_name: dsu_nginx_lb
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./docker/nginx/load-balancer.conf:/etc/nginx/nginx.conf
+      - ./docker/ssl:/etc/nginx/ssl
+    networks:
+      - dsu_network
+    depends_on:
+      - app
+    profiles:
+      - loadbalancer
+
+volumes:
+  redis_data:
+    driver: local
+  mysql_data:
+    driver: local
+
+networks:
+  dsu_network:
+    driver: bridge

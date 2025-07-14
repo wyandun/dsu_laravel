@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # ================================
+  # Aplicación Laravel - Desarrollo
+  # ================================
+  app-dev:
+    build:
+      context: .
+      target: development
+    container_name: dsu_laravel_dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - REDIS_HOST=redis-dev
+    networks:
+      - dsu_dev_network
+    depends_on:
+      - redis-dev
+    working_dir: /var/www/html
+
+  # ================================
+  # Redis para desarrollo
+  # ================================
+  redis-dev:
+    image: redis:7-alpine
+    container_name: dsu_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - dsu_dev_network
+
+  # ================================
+  # MySQL para desarrollo (opcional)
+  # ================================
+  mysql-dev:
+    image: mysql:8.0
+    container_name: dsu_mysql_dev
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: dsu_laravel_dev
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    networks:
+      - dsu_dev_network
+    profiles:
+      - mysql
+
+  # ================================
+  # MailHog para testing de emails
+  # ================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: dsu_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - dsu_dev_network
+
+volumes:
+  mysql_dev_data:
+    driver: local
+
+networks:
+  dsu_dev_network:
+    driver: bridge
