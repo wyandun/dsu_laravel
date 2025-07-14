@@ -22,7 +22,7 @@ class ReportController extends Controller
             abort(403, 'No tienes permisos para acceder a los reportes.');
         }
 
-        $query = Activity::with('user');
+        $query = Activity::with(['user', 'user.direccion', 'user.coordinacion']);
         
         // Aplicar filtros jerárquicos solo si NO es administrador
         if (!$user->isAdministrador()) {
@@ -110,7 +110,7 @@ class ReportController extends Controller
             abort(403, 'No tienes permisos para exportar reportes.');
         }
 
-        $query = Activity::with('user');
+        $query = Activity::with(['user', 'user.direccion', 'user.coordinacion']);
         
         // Aplicar filtros jerárquicos solo si NO es administrador
         if (!$user->isAdministrador()) {

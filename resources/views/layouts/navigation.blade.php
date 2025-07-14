@@ -18,7 +18,10 @@
                     <x-nav-link :href="route('activities.index')" :active="request()->routeIs('activities.*')">
                         {{ __('Actividades') }}
                     </x-nav-link>
-                    @if(auth()->user()->isJefe())
+                    <x-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
+                        {{ __('Calendario') }}
+                    </x-nav-link>
+                    @if(auth()->user()->isJefe() || auth()->user()->isAdministrador())
                         <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                             {{ __('Reportes') }}
                         </x-nav-link>
@@ -84,7 +87,10 @@
             <x-responsive-nav-link :href="route('activities.index')" :active="request()->routeIs('activities.*')">
                 {{ __('Actividades') }}
             </x-responsive-nav-link>
-            @if(auth()->user()->isJefe())
+            <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
+                {{ __('Calendario') }}
+            </x-responsive-nav-link>
+            @if(auth()->user()->isJefe() || auth()->user()->isAdministrador())
                 <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                     {{ __('Reportes') }}
                 </x-responsive-nav-link>

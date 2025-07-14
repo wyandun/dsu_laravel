@@ -24,7 +24,7 @@ class CollaborativeReportController extends Controller
         }
 
         // Query base para actividades colaborativas
-        $query = Activity::with('user')
+        $query = Activity::with(['user.direccion.coordinacion'])
             ->whereNotNull('numero_referencia')
             ->where('numero_referencia', '!=', '')
             ->where('numero_referencia', '!=', 'N/A');
@@ -80,7 +80,7 @@ class CollaborativeReportController extends Controller
 
         // Para cada grupo, obtener los participantes
         foreach ($collaborativeGroups as $group) {
-            $participantesQuery = Activity::with('user')
+            $participantesQuery = Activity::with(['user.direccion.coordinacion'])
                 ->where('tipo', $group->tipo)
                 ->where('numero_referencia', $group->numero_referencia);
                 

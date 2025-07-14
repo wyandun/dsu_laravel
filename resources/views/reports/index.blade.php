@@ -119,14 +119,14 @@
                         <!-- Agrupamiento por dirección -->
                         @php
                             $groupedActivities = $activities->getCollection()->groupBy(function($activity) {
-                                return $activity->user->direccion ?? 'Sin dirección especificada';
+                                return $activity->user->direccion->nombre ?? 'Sin dirección especificada';
                             });
                         @endphp
 
                         @foreach($groupedActivities as $direccion => $activitiesByDir)
                             <div class="mb-8">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b border-gray-200 pb-2">
-                                    <span class="text-blue-600">{{ $activitiesByDir->first()->user->coordinacion ?? 'Sin coordinación' }}</span>
+                                    <span class="text-blue-600">{{ $activitiesByDir->first()->user->coordinacion->nombre ?? 'Sin coordinación' }}</span>
                                     <br>
                                     <span class="text-sm">{{ $direccion }}</span>
                                     <span class="text-sm text-gray-600">({{ $activitiesByDir->count() }} actividades - {{ number_format($activitiesByDir->sum('tiempo'), 2) }} horas)</span>

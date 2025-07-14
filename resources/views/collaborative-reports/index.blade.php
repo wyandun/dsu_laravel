@@ -172,10 +172,10 @@
                                                 <div class="bg-white p-4 rounded-lg border border-gray-200">
                                                     <div class="font-medium text-gray-800">{{ $participante->user->name }}</div>
                                                     <div class="text-sm text-gray-600">
-                                                        {{ $participante->user->coordinacion ?? 'Sin coordinación' }}
+                                                        {{ $participante->user->coordinacion->nombre ?? 'Sin coordinación' }}
                                                     </div>
                                                     <div class="text-sm text-gray-500">
-                                                        {{ $participante->user->direccion ?? 'Sin dirección' }}
+                                                        {{ $participante->user->direccion->nombre ?? 'Sin dirección' }}
                                                     </div>
                                                     <div class="mt-2 flex space-x-4 text-xs">
                                                         <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -214,14 +214,14 @@
                                                 <tbody class="bg-white divide-y divide-gray-200">
                                                     @php
                                                         // Obtener las actividades para este grupo
-                                                        $activitiesInGroup = \App\Models\Activity::with('user')
+                                                        $activitiesInGroup = \App\Models\Activity::with(['user.direccion.coordinacion'])
                                                             ->where('tipo', $group->tipo)
                                                             ->where('numero_referencia', $group->numero_referencia)
-                                                            ->when(auth()->user()->isDirector(), function($q) {
+                                                            ->when(!auth()->user()->isAdministrador() && auth()->user()->isDirector(), function($q) {
                                                                 $empleadosIds = auth()->user()->getEmpleadosBajoSupervision()->pluck('id');
                                                                 return $q->whereIn('user_id', $empleadosIds);
                                                             })
-                                                            ->when(auth()->user()->isCoordinador(), function($q) {
+                                                            ->when(!auth()->user()->isAdministrador() && auth()->user()->isCoordinador(), function($q) {
                                                                 $empleadosIds = auth()->user()->getEmpleadosBajoSupervision()->pluck('id');
                                                                 return $q->whereIn('user_id', $empleadosIds);
                                                             })
@@ -235,7 +235,7 @@
                                                             </td>
                                                             <td class="px-6 py-4 whitespace-nowrap">
                                                                 <div class="text-sm font-medium text-gray-900">{{ $activity->user->name }}</div>
-                                                                <div class="text-sm text-gray-500">{{ $activity->user->coordinacion }}</div>
+                                                                <div class="text-sm text-gray-500">{{ $activity->user->direccion->nombre ?? 'Sin dirección' }}</div>
                                                             </td>
                                                             <td class="px-6 py-4 text-sm text-gray-900">
                                                                 {{ $activity->titulo }}

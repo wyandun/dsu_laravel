@@ -5,6 +5,7 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\CollaborativeReportController;
+use App\Http\Controllers\CalendarController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -22,6 +23,10 @@ Route::middleware('auth')->group(function () {
     
     // Rutas de actividades - disponibles para todos los usuarios autenticados
     Route::resource('activities', ActivityController::class);
+    
+    // Rutas de calendario - disponibles para todos los usuarios autenticados
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/day/{date}', [CalendarController::class, 'showDay'])->name('calendar.day');
     
     // Rutas de reportes - solo para jefes y administradores
     Route::middleware('reports')->group(function () {

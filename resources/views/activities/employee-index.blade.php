@@ -4,9 +4,14 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('Mis Actividades Diarias') }}
             </h2>
-            <a href="{{ route('activities.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Nueva Actividad
-            </a>
+            <div class="flex space-x-2">
+                <a href="{{ route('activities.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    Nueva Actividad
+                </a>
+                <a href="{{ route('calendar.index') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    Vista Calendario
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -24,8 +29,49 @@
                 </div>
             @endif
 
-            @if($activitiesGrouped->count() > 0)
-                <!-- Estadísticas generales -->
+            <!-- Navegación de semanas -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
+                <div class="p-6">
+                    <div class="flex justify-between items-center">
+                        @php
+                            $prevWeek = $weekStart->copy()->subWeek();
+                            $nextWeek = $weekStart->copy()->addWeek();
+                        @endphp
+                        
+                        <a href="{{ route('activities.index', ['week' => $prevWeek->format('Y-m-d')]) }}" 
+                           class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                            ← Semana Anterior
+                        </a>
+                        
+                        <div class="text-center">
+                            <h3 class="text-lg font-semibold">
+                                Semana del {{ $weekStart->format('d/m/Y') }} al {{ $weekEnd->format('d/m/Y') }}
+                            </h3>
+                            <p class="text-gray-600">
+                                {{ $weekStart->format('F Y') }}
+                            </p>
+                        </div>
+                        
+                        <a href="{{ route('activities.index', ['week' => $nextWeek->format('Y-m-d')]) }}" 
+                           class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                            Semana Siguiente →
+                        </a>
+                    </div>
+                    
+                    <!-- Botón para volver a la semana actual -->
+                    @if(!$weekStart->isSameWeek(Carbon\Carbon::now()))
+                        <div class="text-center mt-4">
+                            <a href="{{ route('activities.index') }}" 
+                               class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Ir a Semana Actual
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+                            @if($activitiesGrouped->count() > 0)
+                <!-- Estadísticas de la semana -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6 text-gray-900">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -166,25 +212,17 @@
             @else
                 <!-- Estado vacío -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
-                        <div class="text-center py-12">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">No tienes actividades registradas</h3>
-                            <p class="mt-1 text-sm text-gray-500">
-                                Comienza registrando tu primera actividad del día.
-                            </p>
-                            <div class="mt-6">
-                                <a href="{{ route('activities.create') }}" 
-                                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                                    </svg>
-                                    Nueva Actividad
-                                </a>
-                            </div>
+                    <div class="p-6 text-gray-900 text-center">
+                        <div class="text-gray-500 text-lg mb-4">
+                            No tienes actividades registradas para esta semana.
                         </div>
+                        <p class="text-gray-400 mb-6">
+                            La semana del {{ $weekStart->format('d/m/Y') }} al {{ $weekEnd->format('d/m/Y') }} no tiene actividades registradas.
+                        </p>
+                        <a href="{{ route('activities.create') }}" 
+                           class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Nueva Actividad
+                        </a>
                     </div>
                 </div>
             @endif

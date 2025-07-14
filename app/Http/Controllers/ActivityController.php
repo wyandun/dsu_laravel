@@ -13,17 +13,46 @@ class ActivityController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
-        if ($user->isJefe()) {
-            // Los jefes pueden ver todas las actividades
-            $activities = Activity::with('user')->orderBy('fecha_actividad', 'desc')->paginate(15);
-            return view('activities.index', compact('activities'));
+        // Obtener la semana actual o la semana seleccionada
+        $weekStart = $request->get('week') 
+            ? Carbon::parse($request->get('week'))->startOfWeek() 
+            : Carbon::now()->startOfWeek();
+        
+        $weekEnd = $weekStart->copy()->endOfWeek();
+        
+        if ($user->isJefe() || $user->isAdministrador()) {
+            // Los jefes y administradores pueden ver actividades según su nivel de acceso
+            $activities = collect();
+            
+            if ($user->isAdministrador()) {
+                // El administrador puede ver todas las actividades
+                $activities = Activity::with('user')
+                    ->whereBetween('fecha_actividad', [$weekStart, $weekEnd])
+                    ->orderBy('fecha_actividad', 'desc')
+                    ->get();
+            } elseif ($user->isJefe()) {
+                // Los jefes pueden ver actividades de empleados bajo su supervisión
+                $empleadosSupervision = $user->getEmpleadosBajoSupervision()->pluck('id');
+                $activities = Activity::with('user')
+                    ->whereIn('user_id', $empleadosSupervision)
+                    ->whereBetween('fecha_actividad', [$weekStart, $weekEnd])
+                    ->orderBy('fecha_actividad', 'desc')
+                    ->get();
+            }
+            
+            $activitiesGrouped = $activities->groupBy(function($activity) {
+                return $activity->fecha_actividad->format('Y-m-d');
+            });
+            
+            return view('activities.index', compact('activitiesGrouped', 'weekStart', 'weekEnd'));
         } else {
-            // Los empleados ven sus actividades agrupadas por fecha
+            // Los empleados ven sus actividades de la semana agrupadas por fecha
             $activities = Activity::forUser($user->id)
+                ->whereBetween('fecha_actividad', [$weekStart, $weekEnd])
                 ->orderBy('fecha_actividad', 'desc')
                 ->get();
             
@@ -31,7 +60,7 @@ class ActivityController extends Controller
                 return $activity->fecha_actividad->format('Y-m-d');
             });
             
-            return view('activities.employee-index', compact('activitiesGrouped'));
+            return view('activities.employee-index', compact('activitiesGrouped', 'weekStart', 'weekEnd'));
         }
     }
 
@@ -70,9 +99,19 @@ class ActivityController extends Controller
      */
     public function show(Activity $activity)
     {
+        $user = Auth::user();
+        
         // Verificar permisos
-        if (!Auth::user()->isJefe() && $activity->user_id !== Auth::id()) {
+        if (!$user->isJefe() && !$user->isAdministrador() && $activity->user_id !== $user->id) {
             abort(403);
+        }
+        
+        // Para jefes (no administradores), verificar que el empleado esté bajo su supervisión
+        if ($user->isJefe() && !$user->isAdministrador()) {
+            $empleadosSupervision = $user->getEmpleadosBajoSupervision()->pluck('id');
+            if (!$empleadosSupervision->contains($activity->user_id) && $activity->user_id !== $user->id) {
+                abort(403);
+            }
         }
         
         return view('activities.show', compact('activity'));
