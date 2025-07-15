@@ -46,6 +46,7 @@ class CollaborativeReportTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'empleado',
             'direccion_id' => $this->direccion->id,
+            'coordinacion_id' => $this->coordinacion->id,
         ]);
 
         $this->jefe = User::create([
@@ -55,6 +56,7 @@ class CollaborativeReportTest extends TestCase
             'role' => 'jefe',
             'tipo_jefe' => 'coordinador',
             'direccion_id' => $this->direccion->id,
+            'coordinacion_id' => $this->coordinacion->id,
         ]);
 
         $this->admin = User::create([
@@ -177,11 +179,19 @@ class CollaborativeReportTest extends TestCase
         
         $this->assertCount(2, $groups); // Debe haber 2 grupos diferentes
         
-        // Verificar estadísticas del primer grupo
-        $grupo1 = $groups->first();
-        $this->assertEquals(2, $grupo1->total_actividades); // 2 actividades en el grupo QX-2024-001
-        $this->assertEquals(2, $grupo1->total_participantes); // 2 participantes diferentes
-        $this->assertEquals(3.5, $grupo1->total_tiempo); // 2.0 + 1.5 = 3.5 horas
+        // Buscar el grupo específico QX-2024-001
+        $grupoQX = $groups->firstWhere('numero_referencia', 'QX-2024-001');
+        $this->assertNotNull($grupoQX, 'Debe existir el grupo QX-2024-001');
+        
+        // Verificar estadísticas del grupo QX-2024-001
+        $this->assertEquals(2, $grupoQX->total_actividades); // 2 actividades en el grupo QX-2024-001
+        $this->assertEquals(2, $grupoQX->total_participantes); // 2 participantes diferentes
+        $this->assertEquals(3.5, $grupoQX->total_tiempo); // 2.0 + 1.5 = 3.5 horas
+        
+        // Verificar que existe el grupo HD-2024-001
+        $grupoHD = $groups->firstWhere('numero_referencia', 'HD-2024-001');
+        $this->assertNotNull($grupoHD, 'Debe existir el grupo HD-2024-001');
+        $this->assertEquals(1, $grupoHD->total_actividades); // 1 actividad en el grupo HD-2024-001
     }
 
     /** @test */

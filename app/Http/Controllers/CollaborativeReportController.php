@@ -63,6 +63,10 @@ class CollaborativeReportController extends Controller
             });
         }
 
+        // Calcular estadísticas ANTES de aplicar groupBy
+        $totalActividades = $query->count();
+        $totalTiempo = $query->sum('tiempo');
+
         // Agrupar por tipo y número de referencia
         $collaborativeGroups = $query->select(
                 'tipo',
@@ -101,8 +105,6 @@ class CollaborativeReportController extends Controller
 
         // Estadísticas generales
         $totalGrupos = $collaborativeGroups->total();
-        $totalActividades = $query->count();
-        $totalTiempo = $query->sum('tiempo');
 
         return view('collaborative-reports.index', compact(
             'collaborativeGroups',

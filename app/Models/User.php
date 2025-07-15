@@ -153,11 +153,11 @@ class User extends Authenticatable
             $query->where('direccion_id', $this->direccion_id);
         } elseif ($this->isCoordinador()) {
             // El coordinador puede ver empleados de todas las direcciones de su coordinación
-            // Como los coordinadores no tienen dirección específica, obtener todas las direcciones
-            // de la coordinación TICS (por ahora solo hay una)
-            $coordinacionTics = Coordinacion::where('codigo', 'TICS')->first();
-            if ($coordinacionTics) {
-                $direccionesIds = Direccion::where('coordinacion_id', $coordinacionTics->id)->pluck('id');
+            // Los coordinadores deben tener una coordinacion_id o usar la dirección para determinar la coordinación
+            $coordinacionId = $this->coordinacion_id ?? ($this->direccion ? $this->direccion->coordinacion_id : null);
+            
+            if ($coordinacionId) {
+                $direccionesIds = Direccion::where('coordinacion_id', $coordinacionId)->pluck('id');
                 $query->whereIn('direccion_id', $direccionesIds);
             }
         }

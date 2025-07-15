@@ -46,6 +46,7 @@ class DashboardTest extends TestCase
             'password' => bcrypt('password'),
             'role' => 'empleado',
             'direccion_id' => $this->direccion->id,
+            'coordinacion_id' => $this->coordinacion->id,
         ]);
 
         $this->jefe = User::create([
@@ -55,6 +56,7 @@ class DashboardTest extends TestCase
             'role' => 'jefe',
             'tipo_jefe' => 'coordinador',
             'direccion_id' => $this->direccion->id,
+            'coordinacion_id' => $this->coordinacion->id,
         ]);
 
         $this->admin = User::create([
@@ -205,7 +207,7 @@ class DashboardTest extends TestCase
         $stats = $response->viewData('stats');
         
         // Verificar estadísticas generales
-        $this->assertEquals(3, $stats['total_empleados']); // empleado, empleado2, y empleado original
+        $this->assertEquals(2, $stats['total_empleados']); // empleado del setUp + empleado2 del test
         $this->assertEquals(2, $stats['actividades_hoy']); // 2 actividades hoy
         $this->assertEquals(3, $stats['total_actividades']); // 3 actividades en total
         $this->assertEquals(5.0, $stats['tiempo_total_hoy']); // 2.0 + 3.0 = 5.0 horas hoy

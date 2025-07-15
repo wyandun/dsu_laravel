@@ -36,7 +36,13 @@ class CalendarController extends Controller
         
         if ($user->isJefe() || $user->isAdministrador()) {
             // Obtener empleados bajo supervisión con sus direcciones
-            $employees = $user->getEmpleadosBajoSupervision()->load('direccion');
+            if ($user->isAdministrador()) {
+                // Los administradores ven todos los empleados
+                $employees = User::where('role', 'empleado')->with('direccion')->get();
+            } else {
+                // Los jefes ven solo empleados bajo supervisión
+                $employees = $user->getEmpleadosBajoSupervision()->load('direccion');
+            }
             
             if ($request->has('employee_id') && $request->get('employee_id')) {
                 $selectedEmployee = User::with('direccion')->find($request->get('employee_id'));
@@ -44,21 +50,39 @@ class CalendarController extends Controller
                 if (!$user->isAdministrador() && !$employees->contains($selectedEmployee)) {
                     abort(403, 'No tienes acceso a las actividades de este empleado.');
                 }
+                
+                // Obtener solo las actividades del empleado seleccionado
+                $activities = Activity::where('user_id', $selectedEmployee->id)
+                    ->whereBetween('fecha_actividad', [$month, $monthEnd])
+                    ->orderBy('fecha_actividad', 'asc')
+                    ->get();
             } else {
-                // Por defecto, mostrar las actividades del primer empleado bajo supervisión
-                $selectedEmployee = $employees->first();
+                // Por defecto, mostrar todas las actividades (jefe/admin + empleados bajo supervisión)
+                $selectedEmployee = null; // Indica que se muestran todas las actividades
+                
+                if ($user->isAdministrador()) {
+                    // Los administradores ven TODAS las actividades
+                    $activities = Activity::whereBetween('fecha_actividad', [$month, $monthEnd])
+                        ->orderBy('fecha_actividad', 'asc')
+                        ->get();
+                } else {
+                    // Los jefes ven sus actividades + empleados bajo supervisión
+                    $userIds = $employees->pluck('id')->toArray();
+                    $userIds[] = $user->id; // Incluir al jefe
+                    
+                    $activities = Activity::whereIn('user_id', $userIds)
+                        ->whereBetween('fecha_actividad', [$month, $monthEnd])
+                        ->orderBy('fecha_actividad', 'asc')
+                        ->get();
+                }
             }
         } else {
             // Los empleados solo ven sus propias actividades
             $selectedEmployee = $user;
             $employees = collect([$user]); // Para que aparezca en la lista
-        }
-        
-        // Obtener actividades (siempre, incluso si no hay empleado seleccionado)
-        $activities = collect();
-        if ($selectedEmployee) {
-            // Obtener actividades del empleado seleccionado para el mes
-            $activities = Activity::where('user_id', $selectedEmployee->id)
+            
+            // Obtener actividades del empleado
+            $activities = Activity::where('user_id', $user->id)
                 ->whereBetween('fecha_actividad', [$month, $monthEnd])
                 ->orderBy('fecha_actividad', 'asc')
                 ->get();
@@ -143,9 +167,10 @@ class CalendarController extends Controller
                 ->get(['id', 'name', 'email']);
         } else {
             // Los jefes solo ven empleados bajo su supervisión
-            $empleados = $user->getEmpleadosBajoSupervision()
-                ->where('name', 'like', "%{$term}%")
-                ->take(10);
+            $empleadosBajoSupervision = $user->getEmpleadosBajoSupervision();
+            $empleados = $empleadosBajoSupervision->filter(function($empleado) use ($term) {
+                return stripos($empleado->name, $term) !== false;
+            })->take(10);
         }
         
         return response()->json($empleados->map(function($empleado) {
