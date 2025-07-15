@@ -33,11 +33,11 @@ class CalendarController extends Controller
         $employees = collect();
         
         if ($user->isJefe() || $user->isAdministrador()) {
-            // Obtener empleados bajo supervisión
-            $employees = $user->getEmpleadosBajoSupervision();
+            // Obtener empleados bajo supervisión con sus direcciones
+            $employees = $user->getEmpleadosBajoSupervision()->load('direccion');
             
             if ($request->has('employee_id') && $request->get('employee_id')) {
-                $selectedEmployee = User::find($request->get('employee_id'));
+                $selectedEmployee = User::with('direccion')->find($request->get('employee_id'));
                 // Verificar que el empleado esté bajo supervisión (excepto para administradores)
                 if (!$user->isAdministrador() && !$employees->contains($selectedEmployee)) {
                     abort(403, 'No tienes acceso a las actividades de este empleado.');

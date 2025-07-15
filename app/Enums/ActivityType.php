@@ -4,10 +4,15 @@ namespace App\Enums;
 
 enum ActivityType: string
 {
+    case HELPDESK = 'Helpdesk';
+    case REUNION = 'Reunión';
     case QUIPUX = 'Quipux';
-    case MANTIS = 'Mantis';
     case CTIT = 'CTIT';
+    case SGA = 'SGA';
     case CORREO = 'Correo';
+    case CONTRATO = 'Contrato';
+    case OFICIO = 'Oficio';
+    case GPR = 'GPR';
     case OTROS = 'Otros';
 
     /**
@@ -36,10 +41,15 @@ enum ActivityType: string
     public function getColor(): string
     {
         return match($this) {
+            self::HELPDESK => 'orange',
+            self::REUNION => 'purple',
             self::QUIPUX => 'blue',
-            self::MANTIS => 'red',
             self::CTIT => 'green',
+            self::SGA => 'teal',
             self::CORREO => 'yellow',
+            self::CONTRATO => 'red',
+            self::OFICIO => 'indigo',
+            self::GPR => 'pink',
             self::OTROS => 'gray',
         };
     }
@@ -50,10 +60,15 @@ enum ActivityType: string
     public function getDescription(): string
     {
         return match($this) {
+            self::HELPDESK => 'Soporte técnico y mesa de ayuda',
+            self::REUNION => 'Reuniones de trabajo y coordinación',
             self::QUIPUX => 'Sistema de gestión documental Quipux',
-            self::MANTIS => 'Sistema de tickets Mantis',
-            self::CTIT => 'Actividades de CTIT',
+            self::CTIT => 'Actividades del Centro de Tecnologías de Información y Telecomunicaciones',
+            self::SGA => 'Sistema de Gestión Administrativa',
             self::CORREO => 'Gestión de correos electrónicos',
+            self::CONTRATO => 'Gestión y seguimiento de contratos',
+            self::OFICIO => 'Elaboración y gestión de oficios',
+            self::GPR => 'Gestión por Resultados',
             self::OTROS => 'Otras actividades no categorizadas',
         };
     }

@@ -27,11 +27,11 @@ class ActivitySeeder extends Seeder
                 'participantes' => 4,
                 'observaciones' => 'Desarrollo del nuevo sistema de gestión documental para la institución'
             ],
-            'MNT-2025-015' => [
-                'titulo_base' => 'Actualización Infraestructura de Red',
-                'tipo' => 'Mantis',
+            'HLP-2025-015' => [
+                'titulo_base' => 'Soporte Técnico Mesa de Ayuda',
+                'tipo' => 'Helpdesk',
                 'participantes' => 3,
-                'observaciones' => 'Mantenimiento y actualización de equipos de red'
+                'observaciones' => 'Atención y resolución de tickets de soporte técnico'
             ],
             'CTIT-2025-003' => [
                 'titulo_base' => 'Migración a la Nube',
@@ -45,11 +45,35 @@ class ActivitySeeder extends Seeder
                 'participantes' => 2,
                 'observaciones' => 'Coordinación y ejecución de capacitaciones a usuarios finales'
             ],
-            'OTR-2025-012' => [
-                'titulo_base' => 'Auditoría Sistemas Información',
-                'tipo' => 'Otros',
+            'SGA-2025-012' => [
+                'titulo_base' => 'Actualización Sistema Gestión Administrativa',
+                'tipo' => 'SGA',
                 'participantes' => 3,
-                'observaciones' => 'Auditoría integral de los sistemas de información institucionales'
+                'observaciones' => 'Actualización y mejoras al sistema de gestión administrativa'
+            ],
+            'CTR-2025-045' => [
+                'titulo_base' => 'Seguimiento Contratos TI',
+                'tipo' => 'Contrato',
+                'participantes' => 2,
+                'observaciones' => 'Seguimiento y control de contratos de tecnología'
+            ],
+            'OFC-2025-067' => [
+                'titulo_base' => 'Elaboración Oficios Técnicos',
+                'tipo' => 'Oficio',
+                'participantes' => 2,
+                'observaciones' => 'Elaboración de oficios técnicos y documentos oficiales'
+            ],
+            'GPR-2025-089' => [
+                'titulo_base' => 'Implementación GPR Digital',
+                'tipo' => 'GPR',
+                'participantes' => 4,
+                'observaciones' => 'Implementación del sistema de Gestión por Resultados digital'
+            ],
+            'REU-2025-021' => [
+                'titulo_base' => 'Reuniones Coordinación Técnica',
+                'tipo' => 'Reunión',
+                'participantes' => 3,
+                'observaciones' => 'Reuniones de coordinación y planificación técnica'
             ]
         ];
 

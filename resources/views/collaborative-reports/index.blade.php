@@ -231,29 +231,20 @@
 
             <!-- Gráficos de Análisis -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <!-- Gráfico 1: Horas por Dirección por Tipo -->
+                <!-- Gráfico 1: Horas por Dirección (sin filtro por tipo) -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">Horas por Dirección</h3>
-                            <select id="chartTypeSelector" class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="Quipux">Quipux</option>
-                                <option value="Mantis">Mantis</option>
-                                <option value="CTIT">CTIT</option>
-                                <option value="Correo">Correo</option>
-                                <option value="Otros">Otros</option>
-                            </select>
-                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Total de Horas por Dirección</h3>
                         <div style="height: 400px;" class="flex items-center justify-center">
                             <canvas id="chartByDirection"></canvas>
                         </div>
                     </div>
                 </div>
 
-                <!-- Gráfico 2: Horas por Empleado -->
+                <!-- Gráfico 2: Horas por Empleado (todos los empleados) -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Top 10 Empleados por Horas</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Total de Horas por Empleado</h3>
                         <div style="height: 400px;" class="flex items-center justify-center">
                             <canvas id="chartByEmployee"></canvas>
                         </div>
@@ -662,10 +653,11 @@
             let chartByDirection = null;
             let chartByEmployee = null;
 
-            // Función para cargar gráfico por dirección
-            function loadDirectionChart(tipo = 'Quipux') {
+            // Función para cargar gráfico por dirección (respeta TODOS los filtros)
+            function loadDirectionChart() {
                 const params = new URLSearchParams({
-                    tipo: tipo,
+                    numero_referencia: '{{ request("numero_referencia") }}',
+                    search: '{{ request("search") }}',
                     fecha_inicio: '{{ request("fecha_inicio") }}',
                     fecha_fin: '{{ request("fecha_fin") }}'
                 });
@@ -725,10 +717,11 @@
                     });
             }
 
-            // Función para cargar gráfico por empleado
+            // Función para cargar gráfico por empleado (respeta TODOS los filtros)
             function loadEmployeeChart() {
                 const params = new URLSearchParams({
-                    tipo: '{{ request("tipo") }}',
+                    numero_referencia: '{{ request("numero_referencia") }}',
+                    search: '{{ request("search") }}',
                     fecha_inicio: '{{ request("fecha_inicio") }}',
                     fecha_fin: '{{ request("fecha_fin") }}'
                 });
@@ -787,11 +780,6 @@
                         ctx.fillText('Error al cargar gráfico', ctx.canvas.width / 2, ctx.canvas.height / 2);
                     });
             }
-
-            // Event listener para el selector de tipo
-            document.getElementById('chartTypeSelector').addEventListener('change', function() {
-                loadDirectionChart(this.value);
-            });
 
             // Cargar gráficos iniciales
             loadDirectionChart();

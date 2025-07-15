@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test FullCalendar</title>
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales/es.js'></script>
+</head>
+<body>
+    <h1>Test FullCalendar</h1>
+    <div id="calendar"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('FullCalendar available:', typeof FullCalendar !== 'undefined');
+            
+            if (typeof FullCalendar === 'undefined') {
+                document.getElementById('calendar').innerHTML = '<p style="color: red;">FullCalendar no se cargó</p>';
+                return;
+            }
+
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'es',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth'
+                },
+                events: [
+                    {
+                        title: 'Evento de prueba',
+                        start: '2025-07-15',
+                        backgroundColor: '#3B82F6'
+                    },
+                    {
+                        title: 'Otro evento',
+                        start: '2025-07-20',
+                        backgroundColor: '#EF4444'
+                    }
+                ]
+            });
+
+            calendar.render();
+            console.log('Calendar rendered');
+        });
+    </script>
+</body>
+</html>

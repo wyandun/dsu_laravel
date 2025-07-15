@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Gráficos de Reportes Colaborativos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .chart-wrapper {
+            height: 400px;
+        }
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .status.loading {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test - Gráficos de Reportes Colaborativos</h1>
+        <p>Esta página prueba que los endpoints de los gráficos respondan correctamente a los filtros.</p>
+
+        <!-- Filtros de prueba -->
+        <div class="filters">
+            <h3>Filtros de Prueba</h3>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>Número de Referencia:</label>
+                    <input type="text" id="numeroReferencia" placeholder="Ej: QX-2024">
+                </div>
+                <div class="filter-group">
+                    <label>Búsqueda:</label>
+                    <input type="text" id="search" placeholder="Búsqueda general">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" id="fechaInicio">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Fin:</label>
+                    <input type="date" id="fechaFin">
+                </div>
+            </div>
+            <button onclick="updateCharts()">Actualizar Gráficos</button>
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <!-- Gráfico 1: Horas por Dirección -->
+        <div class="chart-container">
+            <h3>Gráfico 1: Total de Horas por Dirección</h3>
+            <p>Este gráfico debe mostrar el total de horas por dirección respetando TODOS los filtros (sin filtro por tipo).</p>
+            <div class="chart-wrapper">
+                <canvas id="chartByDirection"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfico 2: Horas por Empleado -->
+        <div class="chart-container">
+            <h3>Gráfico 2: Total de Horas por Empleado</h3>
+            <p>Este gráfico debe mostrar el total de horas por empleado respetando TODOS los filtros (no solo top 10).</p>
+            <div class="chart-wrapper">
+                <canvas id="chartByEmployee"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chartByDirection = null;
+        let chartByEmployee = null;
+        
+        // URLs de los endpoints (cambiar la URL base según tu configuración)
+        const BASE_URL = 'http://localhost:8000';
+        const DIRECTION_CHART_URL = `${BASE_URL}/collaborative-reports/chart/hours-by-direction`;
+        const EMPLOYEE_CHART_URL = `${BASE_URL}/collaborative-reports/chart/hours-by-employee`;
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        function buildParams() {
+            const params = new URLSearchParams();
+            
+            const numeroReferencia = document.getElementById('numeroReferencia').value;
+            const search = document.getElementById('search').value;
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+            
+            if (numeroReferencia) params.append('numero_referencia', numeroReferencia);
+            if (search) params.append('search', search);
+            if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+            if (fechaFin) params.append('fecha_fin', fechaFin);
+            
+            return params.toString();
+        }
+
+        async function loadDirectionChart() {
+            try {
+                const params = buildParams();
+                const response = await fetch(`${DIRECTION_CHART_URL}?${params}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const ctx = document.getElementById('chartByDirection').getContext('2d');
+                
+                if (chartByDirection) {
+                    chartByDirection.destroy();
+                }
+
+                chartByDirection = new Chart(ctx, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: data.title,
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20, usePointStyle: true }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = data.total;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value}h (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('Gráfico de direcciones cargado:', data);
+                return true;
+            } catch (error) {
+                console.error('Error loading direction chart:', error);
+                const ctx = document.getElementById('chartByDirection').getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#6B7280';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Error al cargar gráfico', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.fillText(error.message, ctx.canvas.width / 2, ctx.canvas.height / 2 + 25);
+                throw error;
+            }
+        }
+
+        async function loadEmployeeChart() {
+            try {
+                const params = buildParams();
+                const response = await fetch(`${EMPLOYEE_CHART_URL}?${params}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                const ctx = document.getElementById('chartByEmployee').getContext('2d');
+                
+                if (chartByEmployee) {
+                    chartByEmployee.destroy();
+                }
+
+                chartByEmployee = new Chart(ctx, {
+                    type: 'pie',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: data.title,
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20, usePointStyle: true }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = data.total;
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value}h (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('Gráfico de empleados cargado:', data);
+                return true;
+            } catch (error) {
+                console.error('Error loading employee chart:', error);
+                const ctx = document.getElementById('chartByEmployee').getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#6B7280';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Error al cargar gráfico', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                ctx.fillText(error.message, ctx.canvas.width / 2, ctx.canvas.height / 2 + 25);
+                throw error;
+            }
+        }
+
+        async function updateCharts() {
+            showStatus('Cargando gráficos...', 'loading');
+            
+            try {
+                await Promise.all([
+                    loadDirectionChart(),
+                    loadEmployeeChart()
+                ]);
+                
+                showStatus('Gráficos cargados exitosamente', 'success');
+            } catch (error) {
+                showStatus(`Error al cargar gráficos: ${error.message}`, 'error');
+            }
+        }
+
+        // Cargar gráficos iniciales
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCharts();
+        });
+    </script>
+</body>
+</html>

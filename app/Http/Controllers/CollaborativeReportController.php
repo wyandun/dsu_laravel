@@ -243,7 +243,7 @@ class CollaborativeReportController extends Controller
     }
 
     /**
-     * Obtener datos para gráfico de horas por dirección por tipo de actividad
+     * Obtener datos para gráfico de horas por dirección - respeta TODOS los filtros superiores
      */
     public function chartHoursByDirectionAndType(Request $request)
     {
@@ -253,11 +253,8 @@ class CollaborativeReportController extends Controller
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
-        $tipo = $request->get('tipo', 'Quipux'); // Por defecto Quipux
-
-        // Query base
+        // Query base - usar solo actividades colaborativas (con número de referencia)
         $query = Activity::with(['user.direccion'])
-            ->where('tipo', $tipo)
             ->whereNotNull('numero_referencia')
             ->where('numero_referencia', '!=', '')
             ->where('numero_referencia', '!=', 'N/A');
@@ -268,7 +265,7 @@ class CollaborativeReportController extends Controller
             $query->whereIn('user_id', $empleadosIds);
         }
 
-        // Filtros de fecha si se proporcionan
+        // Aplicar TODOS los filtros de la página (sin filtro por tipo)
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('fecha_actividad', '>=', $request->fecha_inicio);
         }
@@ -277,7 +274,30 @@ class CollaborativeReportController extends Controller
             $query->whereDate('fecha_actividad', '<=', $request->fecha_fin);
         }
 
-        // Agrupar por dirección y sumar horas
+        // Filtro por número de referencia específico
+        if ($request->filled('numero_referencia')) {
+            $query->where('numero_referencia', 'like', '%' . $request->numero_referencia . '%');
+        }
+
+        // Filtro por empleado específico
+        if ($request->filled('empleado_id')) {
+            $query->where('user_id', $request->empleado_id);
+        }
+
+        // Búsqueda general
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($searchQuery) use ($search) {
+                $searchQuery->where('titulo', 'like', "%{$search}%")
+                  ->orWhere('numero_referencia', 'like', "%{$search}%")
+                  ->orWhere('observaciones', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Agrupar por dirección y sumar horas (TODOS los empleados, no solo top 10)
         $data = $query->get()
             ->groupBy(function($activity) {
                 return $activity->user->direccion->nombre ?? 'Sin Dirección';
@@ -287,7 +307,8 @@ class CollaborativeReportController extends Controller
             })
             ->filter(function($hours) {
                 return $hours > 0;
-            });
+            })
+            ->sortDesc();
 
         // Preparar datos para Chart.js
         $labels = $data->keys()->toArray();
@@ -296,7 +317,7 @@ class CollaborativeReportController extends Controller
         // Colores para el gráfico
         $colors = [
             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+            '#FF9F40', '#8e44ad', '#e67e22', '#2ecc71', '#34495e'
         ];
 
         return response()->json([
@@ -309,13 +330,13 @@ class CollaborativeReportController extends Controller
                     'borderColor' => '#fff'
                 ]
             ],
-            'title' => "Horas por Dirección - Tipo: {$tipo}",
+            'title' => 'Total de Horas por Dirección (Todas las Actividades Colaborativas)',
             'total' => array_sum($values)
         ]);
     }
 
     /**
-     * Obtener datos para gráfico de horas por empleado (recurso)
+     * Obtener datos para gráfico de horas por empleado - respeta TODOS los filtros superiores
      */
     public function chartHoursByEmployee(Request $request)
     {
@@ -337,11 +358,7 @@ class CollaborativeReportController extends Controller
             $query->whereIn('user_id', $empleadosIds);
         }
 
-        // Filtros adicionales
-        if ($request->filled('tipo')) {
-            $query->where('tipo', $request->tipo);
-        }
-
+        // Aplicar TODOS los filtros de la página (sin filtro por tipo)
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('fecha_actividad', '>=', $request->fecha_inicio);
         }
@@ -350,7 +367,30 @@ class CollaborativeReportController extends Controller
             $query->whereDate('fecha_actividad', '<=', $request->fecha_fin);
         }
 
-        // Agrupar por empleado y sumar horas
+        // Filtro por número de referencia específico
+        if ($request->filled('numero_referencia')) {
+            $query->where('numero_referencia', 'like', '%' . $request->numero_referencia . '%');
+        }
+
+        // Filtro por empleado específico
+        if ($request->filled('empleado_id')) {
+            $query->where('user_id', $request->empleado_id);
+        }
+
+        // Búsqueda general
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($searchQuery) use ($search) {
+                $searchQuery->where('titulo', 'like', "%{$search}%")
+                  ->orWhere('numero_referencia', 'like', "%{$search}%")
+                  ->orWhere('observaciones', 'like', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Agrupar por empleado y sumar horas (TODOS los empleados, no solo top 10)
         $data = $query->get()
             ->groupBy(function($activity) {
                 return $activity->user->name;
@@ -361,8 +401,7 @@ class CollaborativeReportController extends Controller
             ->filter(function($hours) {
                 return $hours > 0;
             })
-            ->sortDesc()
-            ->take(10); // Solo los 10 empleados con más horas
+            ->sortDesc();
 
         // Preparar datos para Chart.js
         $labels = $data->keys()->toArray();
@@ -384,7 +423,7 @@ class CollaborativeReportController extends Controller
                     'borderColor' => '#fff'
                 ]
             ],
-            'title' => 'Top 10 Empleados por Horas Trabajadas',
+            'title' => 'Total de Horas por Empleado (Todas las Actividades Colaborativas)',
             'total' => array_sum($values)
         ]);
     }
