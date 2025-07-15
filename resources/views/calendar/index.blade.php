@@ -98,6 +98,92 @@
         
         .more-activities {
             font-size: 10px;
+            color: #6b7280;
+            text-align: center;
+            padding: 2px;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Estilos para el dropdown de empleados */
+        #employee_dropdown {
+            max-height: 320px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-width: thin;
+            scrollbar-color: #d1d5db #f3f4f6;
+            position: absolute !important;
+            z-index: 9999 !important;
+            top: 100% !important;
+            left: 0 !important;
+            right: 0 !important;
+            background: white !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        /* Asegurar que el contenedor padre permita overflow */
+        .relative {
+            overflow: visible !important;
+        }
+
+        /* Contenedor del formulario debe permitir overflow */
+        #employeeForm .relative {
+            overflow: visible !important;
+            position: relative !important;
+        }
+
+        /* Contenedores padre deben permitir overflow */
+        .bg-white.overflow-hidden {
+            overflow: visible !important;
+        }
+
+        .p-6 {
+            overflow: visible !important;
+        }
+
+        .flex.justify-center.mb-4 {
+            overflow: visible !important;
+        }
+
+        /* Contenedor específico del dropdown */
+        .dropdown-container {
+            position: relative !important;
+            overflow: visible !important;
+            z-index: 100 !important;
+        }
+
+        #employee_dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #employee_dropdown::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 3px;
+        }
+
+        #employee_dropdown::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 3px;
+        }
+
+        #employee_dropdown::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        .employee-option.selected {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+        }
+
+        .employee-option:hover {
+            background-color: #f3f4f6;
+        }
+
+        .employee-option.selected:hover {
+            background-color: #e0e7ff;
+        }
             text-align: center;
             color: #6b7280;
             background-color: #f3f4f6;
@@ -203,25 +289,30 @@
                     @if((Auth::user()->isJefe() || Auth::user()->isAdministrador()) && $employees->count() > 0)
                         <div class="flex justify-center mb-4">
                             <form method="GET" action="{{ route('calendar.index') }}" id="employeeForm" class="flex items-center space-x-4">
-                                <input type="hidden" name="month" value="{{ $month->format('Y-m-d') }}">
+                                <input type="hidden" name="month" value="{{ $month->month }}">
+                                <input type="hidden" name="year" value="{{ $month->year }}">
                                 <input type="hidden" name="employee_id" id="selected_employee_id" value="{{ $selectedEmployee?->id }}">
                                 
                                 <label for="employee_search" class="text-sm font-medium text-gray-700">
                                     Empleado:
                                 </label>
                                 
-                                <div class="relative">
+                                <div class="relative dropdown-container">
                                     <input 
                                         type="text" 
                                         id="employee_search" 
                                         name="employee_search"
                                         value="{{ $selectedEmployee ? $selectedEmployee->name . ' - ' . ($selectedEmployee->direccion->nombre ?? 'Sin dirección') : '' }}"
-                                        placeholder="Buscar empleado..."
+                                        placeholder="Buscar empleado... ({{ $employees->count() }} disponibles)"
                                         class="w-80 border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                         autocomplete="off">
                                     
                                     <!-- Lista desplegable de empleados -->
-                                    <div id="employee_dropdown" class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 hidden max-h-60 overflow-y-auto">
+                                    <div id="employee_dropdown" class="hidden">
+                                        <!-- Mensaje cuando no hay resultados -->
+                                        <div id="no_results_message" class="px-4 py-3 text-gray-500 text-center hidden">
+                                            No se encontraron empleados
+                                        </div>
                                         @foreach($employees as $employee)
                                             <div class="employee-option px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                                                  data-id="{{ $employee->id }}"
@@ -630,6 +721,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Calendario cargado correctamente');
             initializeEmployeeAutocomplete();
+            
+            // Reposicionar dropdown en scroll y resize
+            window.addEventListener('scroll', repositionDropdown);
+            window.addEventListener('resize', repositionDropdown);
         });
 
         // Función para inicializar el autocompletado de empleados
@@ -645,6 +740,7 @@
             searchInput.addEventListener('focus', function() {
                 dropdown.classList.remove('hidden');
                 filterEmployees(''); // Mostrar todos al hacer focus
+                repositionDropdown(); // Reposicionar si es necesario
             });
             
             // Filtrar empleados mientras se escribe
@@ -652,6 +748,7 @@
                 const query = this.value.toLowerCase();
                 filterEmployees(query);
                 dropdown.classList.remove('hidden');
+                repositionDropdown(); // Reposicionar si es necesario
             });
             
             // Ocultar dropdown al hacer clic fuera
@@ -701,6 +798,7 @@
         
         function filterEmployees(query) {
             const options = document.querySelectorAll('.employee-option');
+            const noResultsMessage = document.getElementById('no_results_message');
             let visibleCount = 0;
             
             options.forEach(option => {
@@ -716,6 +814,13 @@
                     option.classList.remove('selected');
                 }
             });
+            
+            // Mostrar/ocultar mensaje de no resultados
+            if (visibleCount === 0 && query.length > 0) {
+                noResultsMessage.classList.remove('hidden');
+            } else {
+                noResultsMessage.classList.add('hidden');
+            }
             
             // Auto-seleccionar el primero si hay resultados
             if (visibleCount > 0) {
@@ -760,6 +865,48 @@
             searchInput.value = '';
             employeeIdInput.value = '';
             form.submit();
+        }
+
+        // Función para reposicionar el dropdown si se sale de la vista
+        function repositionDropdown() {
+            const dropdown = document.getElementById('employee_dropdown');
+            const searchInput = document.getElementById('employee_search');
+            
+            if (!dropdown || !searchInput || dropdown.classList.contains('hidden')) return;
+            
+            // Usar setTimeout para permitir que el DOM se actualice
+            setTimeout(() => {
+                const dropdownRect = dropdown.getBoundingClientRect();
+                const inputRect = searchInput.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Si el dropdown se sale por abajo de la pantalla
+                if (dropdownRect.bottom > viewportHeight) {
+                    // Calcular si hay espacio arriba
+                    const spaceAbove = inputRect.top;
+                    const dropdownHeight = dropdownRect.height;
+                    
+                    if (spaceAbove >= dropdownHeight) {
+                        // Mostrar el dropdown hacia arriba
+                        dropdown.style.top = 'auto';
+                        dropdown.style.bottom = '100%';
+                        dropdown.style.borderRadius = '0.375rem 0.375rem 0 0';
+                    } else {
+                        // Mantener abajo pero ajustar altura máxima
+                        const availableSpace = viewportHeight - inputRect.bottom - 20; // 20px de margen
+                        dropdown.style.maxHeight = Math.max(200, availableSpace) + 'px';
+                        dropdown.style.top = '100%';
+                        dropdown.style.bottom = 'auto';
+                        dropdown.style.borderRadius = '0 0 0.375rem 0.375rem';
+                    }
+                } else {
+                    // Resetear a posición normal
+                    dropdown.style.top = '100%';
+                    dropdown.style.bottom = 'auto';
+                    dropdown.style.maxHeight = '320px';
+                    dropdown.style.borderRadius = '0 0 0.375rem 0.375rem';
+                }
+            }, 10);
         }
     </script>
 </x-app-layout>
