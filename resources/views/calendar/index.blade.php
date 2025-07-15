@@ -295,12 +295,12 @@
                     <!-- Control de navegación del mes -->
                     <div class="flex justify-between items-center mb-6">
                         @if($selectedEmployee)
-                            <a href="{{ route('calendar.index', ['employee_id' => $selectedEmployee->id, 'month' => $month->copy()->subMonth()->format('Y-m-d')]) }}" 
+                            <a href="{{ route('calendar.index', ['employee_id' => $selectedEmployee->id, 'month' => $month->copy()->subMonth()->month, 'year' => $month->copy()->subMonth()->year]) }}" 
                                class="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
                                 ← Mes Anterior
                             </a>
                         @else
-                            <a href="{{ route('calendar.index', ['month' => $month->copy()->subMonth()->format('Y-m-d')]) }}" 
+                            <a href="{{ route('calendar.index', ['month' => $month->copy()->subMonth()->month, 'year' => $month->copy()->subMonth()->year]) }}" 
                                class="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
                                 ← Mes Anterior
                             </a>
@@ -311,12 +311,12 @@
                         </h3>
                         
                         @if($selectedEmployee)
-                            <a href="{{ route('calendar.index', ['employee_id' => $selectedEmployee->id, 'month' => $month->copy()->addMonth()->format('Y-m-d')]) }}" 
+                            <a href="{{ route('calendar.index', ['employee_id' => $selectedEmployee->id, 'month' => $month->copy()->addMonth()->month, 'year' => $month->copy()->addMonth()->year]) }}" 
                                class="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
                                 Mes Siguiente →
                             </a>
                         @else
-                            <a href="{{ route('calendar.index', ['month' => $month->copy()->addMonth()->format('Y-m-d')]) }}" 
+                            <a href="{{ route('calendar.index', ['month' => $month->copy()->addMonth()->month, 'year' => $month->copy()->addMonth()->year]) }}" 
                                class="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700">
                                 Mes Siguiente →
                             </a>
@@ -351,10 +351,10 @@
                             $startWeek = $firstDay->copy()->startOfWeek(Carbon::MONDAY);
                             
                             // Agrupar actividades por fecha
-                            $activitiesByDate = $activities->groupBy(function($activity) {
-                                return $activity->fecha_actividad->format('Y-m-d');
-                            });
-                            
+                            $activitiesByDate = $activities->groupBy(function($activity) {                            return $activity->fecha_actividad->format('Y-m-d');
+                        });
+                        
+                        if (!function_exists('getActivityClass')) {
                             function getActivityClass($type) {
                                 switch($type) {
                                     case 'Helpdesk': return 'activity-helpdesk';
@@ -370,6 +370,7 @@
                                     default: return 'activity-otros';
                                 }
                             }
+                        }
                         @endphp
                         
                         <div class="calendar-grid">

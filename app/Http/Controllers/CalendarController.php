@@ -21,10 +21,12 @@ class CalendarController extends Controller
         // Configurar Carbon en español
         Carbon::setLocale('es');
         
-        // Obtener el mes actual o el mes seleccionado
-        $month = $request->get('month') 
-            ? Carbon::parse($request->get('month'))->startOfMonth() 
-            : Carbon::now()->startOfMonth();
+        // Obtener el mes y año actual o los seleccionados
+        $monthNumber = $request->get('month', Carbon::now()->month);
+        $yearNumber = $request->get('year', Carbon::now()->year);
+        
+        // Crear la fecha del primer día del mes
+        $month = Carbon::createFromDate($yearNumber, $monthNumber, 1)->startOfMonth();
         
         $monthEnd = $month->copy()->endOfMonth();
         
@@ -62,13 +64,26 @@ class CalendarController extends Controller
                 ->get();
         }
         
+        // Agrupar actividades por fecha y calcular horas diarias
+        $activitiesByDate = $activities->groupBy(function($activity) {
+            return $activity->fecha_actividad->format('Y-m-d');
+        });
+        
+        $dailyHours = $activitiesByDate->map(function($dayActivities) {
+            return $dayActivities->sum('tiempo');
+        });
+        
         return view('calendar.index', compact(
             'activities', 
-            'month', 
             'monthEnd', 
             'selectedEmployee', 
-            'employees'
-        ));
+            'employees',
+            'activitiesByDate',
+            'dailyHours',
+            'month'
+        ))->with([
+            'year' => $yearNumber
+        ]);
     }
     
     /**
@@ -104,5 +119,40 @@ class CalendarController extends Controller
             ->get();
         
         return view('calendar.day', compact('activities', 'selectedDate', 'selectedEmployee'));
+    }
+    
+    /**
+     * Autocompletado para empleados en el calendario
+     */
+    public function autocompleteEmpleados(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Solo los jefes y administradores pueden usar este endpoint
+        if (!$user->isJefe() && !$user->isAdministrador()) {
+            abort(403, 'No tienes permisos para acceder a este recurso.');
+        }
+        
+        $term = $request->get('q', '');
+        
+        if ($user->isAdministrador()) {
+            // Los administradores pueden ver todos los empleados
+            $empleados = User::where('role', 'empleado')
+                ->where('name', 'like', "%{$term}%")
+                ->limit(10)
+                ->get(['id', 'name', 'email']);
+        } else {
+            // Los jefes solo ven empleados bajo su supervisión
+            $empleados = $user->getEmpleadosBajoSupervision()
+                ->where('name', 'like', "%{$term}%")
+                ->take(10);
+        }
+        
+        return response()->json($empleados->map(function($empleado) {
+            return [
+                'id' => $empleado->id,
+                'text' => $empleado->name . ' (' . $empleado->email . ')'
+            ];
+        }));
     }
 }

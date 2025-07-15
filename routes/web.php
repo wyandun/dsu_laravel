@@ -28,6 +28,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/day/{date}', [CalendarController::class, 'showDay'])->name('calendar.day');
     
+    // APIs para autocompletado en calendario - solo para jefes y administradores
+    Route::middleware('reports')->group(function () {
+        Route::get('/api/calendar/empleados', [CalendarController::class, 'autocompleteEmpleados'])->name('calendar.empleados');
+    });
+    
     // Rutas de reportes - solo para jefes y administradores
     Route::middleware('reports')->group(function () {
         Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -39,6 +44,7 @@ Route::middleware('auth')->group(function () {
         
         // APIs para autocompletado en reportes colaborativos
         Route::get('/api/autocomplete/referencia', [CollaborativeReportController::class, 'autocompleteReferencia'])->name('api.autocomplete.referencia');
+        Route::get('/collaborative-reports/autocomplete/referencia', [CollaborativeReportController::class, 'autocompleteReferencia'])->name('collaborative-reports.autocomplete.referencia');
         Route::get('/api/autocomplete/titulos', [CollaborativeReportController::class, 'autocompleteTitulos'])->name('api.autocomplete.titulos');
         
         // APIs para autocompletado en reportes generales

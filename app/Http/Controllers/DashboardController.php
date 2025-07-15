@@ -14,19 +14,38 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        if ($user->isJefe()) {
+        if ($user->isJefe() || $user->isAdministrador()) {
             // Dashboard para jefe
-            $stats = [
-                'total_empleados' => User::where('role', 'empleado')->count(),
-                'actividades_hoy' => Activity::today()->count(),
-                'total_actividades' => Activity::count(),
-                'tiempo_total_hoy' => Activity::today()->sum('tiempo'),
-            ];
-            
-            $actividades_recientes = Activity::with('user')
-                ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get();
+            if ($user->isAdministrador()) {
+                // Administradores ven todo
+                $stats = [
+                    'total_empleados' => User::where('role', 'empleado')->count(),
+                    'actividades_hoy' => Activity::today()->count(),
+                    'total_actividades' => Activity::count(),
+                    'tiempo_total_hoy' => Activity::today()->sum('tiempo'),
+                ];
+                
+                $actividades_recientes = Activity::with('user')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get();
+            } else {
+                // Jefes ven solo empleados bajo supervisión
+                $empleadosSupervision = $user->getEmpleadosBajoSupervision()->pluck('id');
+                
+                $stats = [
+                    'total_empleados' => $empleadosSupervision->count(),
+                    'actividades_hoy' => Activity::whereIn('user_id', $empleadosSupervision)->today()->count(),
+                    'total_actividades' => Activity::whereIn('user_id', $empleadosSupervision)->count(),
+                    'tiempo_total_hoy' => Activity::whereIn('user_id', $empleadosSupervision)->today()->sum('tiempo'),
+                ];
+                
+                $actividades_recientes = Activity::with('user')
+                    ->whereIn('user_id', $empleadosSupervision)
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10)
+                    ->get();
+            }
                 
             return view('dashboard.jefe', compact('stats', 'actividades_recientes'));
         } else {

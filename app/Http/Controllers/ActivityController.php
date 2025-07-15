@@ -101,20 +101,26 @@ class ActivityController extends Controller
     {
         $user = Auth::user();
         
-        // Verificar permisos
-        if (!$user->isJefe() && !$user->isAdministrador() && $activity->user_id !== $user->id) {
-            abort(403);
+        // Si es el propietario de la actividad, puede verla
+        if ($activity->user_id === $user->id) {
+            return view('activities.show', compact('activity'));
         }
         
-        // Para jefes (no administradores), verificar que el empleado esté bajo su supervisión
-        if ($user->isJefe() && !$user->isAdministrador()) {
+        // Si es administrador, puede ver todas las actividades
+        if ($user->isAdministrador()) {
+            return view('activities.show', compact('activity'));
+        }
+        
+        // Si es jefe, verificar que el empleado esté bajo su supervisión
+        if ($user->isJefe()) {
             $empleadosSupervision = $user->getEmpleadosBajoSupervision()->pluck('id');
-            if (!$empleadosSupervision->contains($activity->user_id) && $activity->user_id !== $user->id) {
-                abort(403);
+            if ($empleadosSupervision->contains($activity->user_id)) {
+                return view('activities.show', compact('activity'));
             }
         }
         
-        return view('activities.show', compact('activity'));
+        // Si no tiene permisos, denegar acceso
+        abort(403);
     }
 
     /**
