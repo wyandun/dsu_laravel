@@ -18,6 +18,9 @@ class CalendarController extends Controller
     {
         $user = Auth::user();
         
+        // Configurar Carbon en español
+        Carbon::setLocale('es');
+        
         // Obtener el mes actual o el mes seleccionado
         $month = $request->get('month') 
             ? Carbon::parse($request->get('month'))->startOfMonth() 
@@ -46,82 +49,26 @@ class CalendarController extends Controller
         } else {
             // Los empleados solo ven sus propias actividades
             $selectedEmployee = $user;
+            $employees = collect([$user]); // Para que aparezca en la lista
         }
         
-        if (!$selectedEmployee) {
-            return view('calendar.index', [
-                'activities' => collect(),
-                'month' => $month,
-                'monthEnd' => $monthEnd,
-                'selectedEmployee' => null,
-                'employees' => $employees,
-                'calendarData' => []
-            ]);
+        // Obtener actividades (siempre, incluso si no hay empleado seleccionado)
+        $activities = collect();
+        if ($selectedEmployee) {
+            // Obtener actividades del empleado seleccionado para el mes
+            $activities = Activity::where('user_id', $selectedEmployee->id)
+                ->whereBetween('fecha_actividad', [$month, $monthEnd])
+                ->orderBy('fecha_actividad', 'asc')
+                ->get();
         }
-        
-        // Obtener actividades del empleado seleccionado para el mes
-        $activities = Activity::where('user_id', $selectedEmployee->id)
-            ->whereBetween('fecha_actividad', [$month, $monthEnd])
-            ->orderBy('fecha_actividad', 'asc')
-            ->get();
-        
-        // Organizar actividades por día para el calendario
-        $calendarData = $this->buildCalendarData($month, $activities);
         
         return view('calendar.index', compact(
             'activities', 
             'month', 
             'monthEnd', 
             'selectedEmployee', 
-            'employees', 
-            'calendarData'
+            'employees'
         ));
-    }
-    
-    /**
-     * Build calendar data structure
-     */
-    private function buildCalendarData($month, $activities)
-    {
-        $calendarData = [];
-        $activitiesByDate = $activities->groupBy(function($activity) {
-            return $activity->fecha_actividad->format('Y-m-d');
-        });
-        
-        // Obtener el primer día de la semana del mes
-        $startDate = $month->copy()->startOfWeek();
-        // Obtener el último día de la semana del mes
-        $endDate = $month->copy()->endOfMonth()->endOfWeek();
-        
-        // Construir las semanas
-        $currentDate = $startDate->copy();
-        $weekNumber = 0;
-        
-        while ($currentDate <= $endDate) {
-            $weekData = [];
-            
-            // Construir los días de la semana
-            for ($dayOfWeek = 0; $dayOfWeek < 7; $dayOfWeek++) {
-                $dateString = $currentDate->format('Y-m-d');
-                $dayActivities = $activitiesByDate->get($dateString, collect());
-                
-                $weekData[] = [
-                    'date' => $currentDate->copy(),
-                    'activities' => $dayActivities,
-                    'is_current_month' => $currentDate->month === $month->month,
-                    'is_today' => $currentDate->isToday(),
-                    'total_hours' => $dayActivities->sum('tiempo'),
-                    'activity_count' => $dayActivities->count()
-                ];
-                
-                $currentDate->addDay();
-            }
-            
-            $calendarData[] = $weekData;
-            $weekNumber++;
-        }
-        
-        return $calendarData;
     }
     
     /**

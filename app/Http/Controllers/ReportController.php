@@ -159,4 +159,125 @@ class ReportController extends Controller
         
         return Excel::download(new ActivitiesExport($activities), $filename);
     }
+
+    /**
+     * API para autocompletado de empleados
+     */
+    public function autocompleteEmpleados(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->isJefe() && !$user->isAdministrador()) {
+            return response()->json([]);
+        }
+
+        // Obtener empleados bajo supervisión o todos si es admin
+        if ($user->isAdministrador()) {
+            $query = User::where('role', 'empleado');
+        } else {
+            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
+            $query = User::whereIn('id', $empleadosIds);
+        }
+
+        if ($request->filled('q')) {
+            $query->where('name', 'like', '%' . $request->q . '%');
+        }
+
+        $empleados = $query->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name'])
+            ->map(function($empleado) {
+                return [
+                    'id' => $empleado->id,
+                    'text' => $empleado->name
+                ];
+            });
+
+        return response()->json($empleados);
+    }
+
+    /**
+     * API para autocompletado de direcciones
+     */
+    public function autocompleteDirecciones(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->isJefe() && !$user->isAdministrador()) {
+            return response()->json([]);
+        }
+
+        // Obtener direcciones bajo supervisión o todas si es admin
+        if ($user->isAdministrador()) {
+            $direcciones = User::whereHas('direccion')
+                ->with('direccion')
+                ->get()
+                ->map(function($user) {
+                    return $user->direccion->nombre;
+                })
+                ->unique()
+                ->sort()
+                ->values();
+        } else {
+            $empleados = $user->getEmpleadosBajoSupervision();
+            $direcciones = $empleados->filter(function($empleado) {
+                    return $empleado->direccion;
+                })
+                ->map(function($empleado) {
+                    return $empleado->direccion->nombre;
+                })
+                ->unique()
+                ->sort()
+                ->values();
+        }
+
+        if ($request->filled('q')) {
+            $direcciones = $direcciones->filter(function($direccion) use ($request) {
+                return stripos($direccion, $request->q) !== false;
+            })->values();
+        }
+
+        return response()->json($direcciones->take(10));
+    }
+
+    /**
+     * API para autocompletado de búsqueda general
+     */
+    public function autocompleteBusqueda(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->isJefe() && !$user->isAdministrador()) {
+            return response()->json([]);
+        }
+
+        $query = Activity::with(['user']);
+
+        // Aplicar filtros jerárquicos solo si NO es administrador
+        if (!$user->isAdministrador()) {
+            $empleadosIds = $user->getEmpleadosBajoSupervision()->pluck('id');
+            $query->whereIn('user_id', $empleadosIds);
+        }
+
+        if ($request->filled('q')) {
+            $search = $request->q;
+            $query->where(function($q) use ($search) {
+                $q->where('titulo', 'like', "%{$search}%")
+                  ->orWhere('numero_referencia', 'like', "%{$search}%")
+                  ->orWhere('observaciones', 'like', "%{$search}%");
+            });
+        }
+
+        $resultados = $query->select('titulo', 'numero_referencia')
+            ->distinct()
+            ->limit(10)
+            ->get()
+            ->map(function($activity) {
+                return $activity->titulo;
+            })
+            ->unique()
+            ->values();
+
+        return response()->json($resultados);
+    }
 }

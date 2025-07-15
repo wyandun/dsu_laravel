@@ -13,6 +13,95 @@
         </div>
     </x-slot>
 
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Estilos adicionales para autocompletado */
+        .autocomplete-container {
+            position: relative;
+        }
+        
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 50;
+            max-height: 15rem;
+            overflow-y: auto;
+        }
+        
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background-color 0.15s ease-in-out;
+        }
+        
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        .autocomplete-item:hover,
+        .autocomplete-item.bg-indigo-100 {
+            background-color: #e0e7ff;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: #c7d2fe;
+        }
+        
+        /* Mejorar la transición del input cuando está enfocado */
+        .autocomplete-input:focus {
+            border-radius: 0.375rem 0.375rem 0 0;
+        }
+        
+        .autocomplete-input:focus + .autocomplete-suggestions:not(.hidden) {
+            border-top: 1px solid #6366f1;
+        }
+        /* Indicador de carga */
+        .autocomplete-loading {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .autocomplete-loading::before {
+            content: '';
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Mensaje cuando no hay resultados */
+        .autocomplete-no-results {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.875rem;
+            font-style: italic;
+        }
+    </style>
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Formulario de filtros -->
@@ -36,19 +125,29 @@
                             </div>
 
                             <!-- Número de Referencia -->
-                            <div>
-                                <label for="numero_referencia" class="block text-sm font-medium text-gray-700">Número de Referencia</label>
+                            <div class="relative autocomplete-container">
+                                <label for="numero_referencia" class="block text-sm font-medium text-gray-700">
+                                    Número de Referencia
+                                    <span class="text-xs text-gray-500 ml-1">(con autocompletado)</span>
+                                </label>
                                 <input type="text" name="numero_referencia" id="numero_referencia" value="{{ request('numero_referencia') }}" 
                                        placeholder="Buscar por número de referencia..."
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                       class="autocomplete-input mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                       autocomplete="off">
+                                <div id="referencia-suggestions" class="autocomplete-suggestions hidden"></div>
                             </div>
 
                             <!-- Búsqueda -->
-                            <div>
-                                <label for="search" class="block text-sm font-medium text-gray-700">Búsqueda</label>
+                            <div class="relative autocomplete-container">
+                                <label for="search" class="block text-sm font-medium text-gray-700">
+                                    Búsqueda
+                                    <span class="text-xs text-gray-500 ml-1">(con autocompletado)</span>
+                                </label>
                                 <input type="text" name="search" id="search" value="{{ request('search') }}" 
                                        placeholder="Buscar en título, observaciones..."
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                       class="autocomplete-input mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                       autocomplete="off">
+                                <div id="search-suggestions" class="autocomplete-suggestions hidden"></div>
                             </div>
 
                             <!-- Fecha inicio -->
@@ -127,6 +226,38 @@
                             </p>
                         </div>
                     @endif
+                </div>
+            </div>
+
+            <!-- Gráficos de Análisis -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Gráfico 1: Horas por Dirección por Tipo -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Horas por Dirección</h3>
+                            <select id="chartTypeSelector" class="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="Quipux">Quipux</option>
+                                <option value="Mantis">Mantis</option>
+                                <option value="CTIT">CTIT</option>
+                                <option value="Correo">Correo</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div style="height: 400px;" class="flex items-center justify-center">
+                            <canvas id="chartByDirection"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico 2: Horas por Empleado -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Top 10 Empleados por Horas</h3>
+                        <div style="height: 400px;" class="flex items-center justify-center">
+                            <canvas id="chartByEmployee"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -299,6 +430,372 @@
                 toggleButton.classList.remove('bg-red-500', 'hover:bg-red-700');
                 toggleButton.classList.add('bg-indigo-500', 'hover:bg-indigo-700');
             }
+        }
+
+        // Sistema de autocompletado
+        class AutocompleteManager {
+            constructor() {
+                this.debounceTimer = null;
+                this.activeField = null;
+                this.init();
+            }
+
+            init() {
+                // Configurar autocompletado para número de referencia
+                this.setupAutocomplete('numero_referencia', 'referencia-suggestions', '{{ route("api.autocomplete.referencia") }}');
+                
+                // Configurar autocompletado para búsqueda
+                this.setupAutocomplete('search', 'search-suggestions', '{{ route("api.autocomplete.titulos") }}');
+
+                // Cerrar sugerencias al hacer clic fuera
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.autocomplete-container')) {
+                        this.hideAllSuggestions();
+                    }
+                });
+            }
+
+            setupAutocomplete(inputId, suggestionId, apiUrl) {
+                const input = document.getElementById(inputId);
+                const suggestions = document.getElementById(suggestionId);
+
+                if (!input || !suggestions) return;
+
+                input.addEventListener('input', (e) => {
+                    const query = e.target.value.trim();
+                    
+                    if (query.length < 2) {
+                        this.hideSuggestions(suggestionId);
+                        return;
+                    }
+
+                    this.debouncedSearch(query, apiUrl, suggestionId, inputId);
+                });
+
+                input.addEventListener('focus', (e) => {
+                    this.activeField = inputId;
+                    const query = e.target.value.trim();
+                    if (query.length >= 2) {
+                        this.debouncedSearch(query, apiUrl, suggestionId, inputId);
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    this.handleKeyNavigation(e, suggestionId, inputId);
+                });
+            }
+
+            debouncedSearch(query, apiUrl, suggestionId, inputId) {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.fetchSuggestions(query, apiUrl, suggestionId, inputId);
+                }, 300);
+            }
+
+            async fetchSuggestions(query, apiUrl, suggestionId, inputId) {
+                try {
+                    // Mostrar indicador de carga
+                    this.showLoading(suggestionId);
+                    
+                    const response = await fetch(`${apiUrl}?q=${encodeURIComponent(query)}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    const data = await response.json();
+                    this.renderSuggestions(data, suggestionId, inputId);
+                } catch (error) {
+                    console.error('Error fetching suggestions:', error);
+                    this.showError(suggestionId);
+                }
+            }
+
+            renderSuggestions(suggestions, suggestionId, inputId) {
+                const container = document.getElementById(suggestionId);
+                const input = document.getElementById(inputId);
+                const query = input.value.toLowerCase();
+                
+                if (!suggestions || suggestions.length === 0) {
+                    this.showNoResults(suggestionId);
+                    return;
+                }
+
+                container.innerHTML = '';
+                
+                suggestions.forEach((suggestion, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.dataset.index = index;
+                    item.dataset.originalText = suggestion; // Guardar texto original
+
+                    // Resaltar texto coincidente
+                    const highlightedText = this.highlightMatch(suggestion, query);
+                    item.innerHTML = highlightedText;
+
+                    item.addEventListener('click', () => {
+                        document.getElementById(inputId).value = suggestion;
+                        this.hideSuggestions(suggestionId);
+                    });
+
+                    container.appendChild(item);
+                });
+
+                this.showSuggestions(suggestionId);
+            }
+
+            highlightMatch(text, query) {
+                if (!query) return text;
+                
+                const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                return text.replace(regex, '<strong class="text-indigo-600">$1</strong>');
+            }
+
+            showLoading(suggestionId) {
+                const container = document.getElementById(suggestionId);
+                container.innerHTML = '<div class="autocomplete-loading">Buscando...</div>';
+                this.showSuggestions(suggestionId);
+            }
+
+            showError(suggestionId) {
+                const container = document.getElementById(suggestionId);
+                container.innerHTML = '<div class="autocomplete-no-results">Error al buscar sugerencias</div>';
+                this.showSuggestions(suggestionId);
+                
+                // Ocultar después de 3 segundos
+                setTimeout(() => {
+                    this.hideSuggestions(suggestionId);
+                }, 3000);
+            }
+
+            showNoResults(suggestionId) {
+                const container = document.getElementById(suggestionId);
+                container.innerHTML = '<div class="autocomplete-no-results">No se encontraron resultados</div>';
+                this.showSuggestions(suggestionId);
+                
+                // Ocultar después de 2 segundos
+                setTimeout(() => {
+                    this.hideSuggestions(suggestionId);
+                }, 2000);
+            }
+
+            showSuggestions(suggestionId) {
+                const container = document.getElementById(suggestionId);
+                container.classList.remove('hidden');
+            }
+
+            hideSuggestions(suggestionId) {
+                const container = document.getElementById(suggestionId);
+                container.classList.add('hidden');
+                container.innerHTML = '';
+            }
+
+            hideAllSuggestions() {
+                this.hideSuggestions('referencia-suggestions');
+                this.hideSuggestions('search-suggestions');
+                this.activeField = null;
+            }
+
+            handleKeyNavigation(e, suggestionId, inputId) {
+                const container = document.getElementById(suggestionId);
+                const items = container.querySelectorAll('div[data-index]');
+                
+                if (items.length === 0) return;
+
+                const currentActive = container.querySelector('.bg-indigo-100');
+                let newActiveIndex = -1;
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        if (currentActive) {
+                            newActiveIndex = parseInt(currentActive.dataset.index) + 1;
+                            currentActive.classList.remove('bg-indigo-100');
+                        } else {
+                            newActiveIndex = 0;
+                        }
+                        if (newActiveIndex >= items.length) newActiveIndex = 0;
+                        break;
+
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        if (currentActive) {
+                            newActiveIndex = parseInt(currentActive.dataset.index) - 1;
+                            currentActive.classList.remove('bg-indigo-100');
+                        } else {
+                            newActiveIndex = items.length - 1;
+                        }
+                        if (newActiveIndex < 0) newActiveIndex = items.length - 1;
+                        break;
+
+                    case 'Enter':
+                        e.preventDefault();
+                        if (currentActive) {
+                            const value = currentActive.dataset.originalText || currentActive.textContent;
+                            document.getElementById(inputId).value = value;
+                            this.hideSuggestions(suggestionId);
+                        }
+                        break;
+
+                    case 'Escape':
+                        this.hideSuggestions(suggestionId);
+                        break;
+                }
+
+                if (newActiveIndex >= 0 && items[newActiveIndex]) {
+                    items[newActiveIndex].classList.add('bg-indigo-100');
+                }
+            }
+        }
+
+        // Inicializar autocompletado cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            new AutocompleteManager();
+            initCharts();
+        });
+
+        // Inicializar gráficos
+        function initCharts() {
+            let chartByDirection = null;
+            let chartByEmployee = null;
+
+            // Función para cargar gráfico por dirección
+            function loadDirectionChart(tipo = 'Quipux') {
+                const params = new URLSearchParams({
+                    tipo: tipo,
+                    fecha_inicio: '{{ request("fecha_inicio") }}',
+                    fecha_fin: '{{ request("fecha_fin") }}'
+                });
+
+                fetch(`{{ route('collaborative-reports.chart.hours-by-direction') }}?${params}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const ctx = document.getElementById('chartByDirection').getContext('2d');
+                        
+                        if (chartByDirection) {
+                            chartByDirection.destroy();
+                        }
+
+                        chartByDirection = new Chart(ctx, {
+                            type: 'pie',
+                            data: data,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: data.title,
+                                        font: {
+                                            size: 16,
+                                            weight: 'bold'
+                                        }
+                                    },
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            padding: 20,
+                                            usePointStyle: true
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const value = context.parsed;
+                                                const total = data.total;
+                                                const percentage = ((value / total) * 100).toFixed(1);
+                                                return `${context.label}: ${value}h (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading direction chart:', error);
+                        const ctx = document.getElementById('chartByDirection').getContext('2d');
+                        ctx.fillStyle = '#6B7280';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Error al cargar gráfico', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    });
+            }
+
+            // Función para cargar gráfico por empleado
+            function loadEmployeeChart() {
+                const params = new URLSearchParams({
+                    tipo: '{{ request("tipo") }}',
+                    fecha_inicio: '{{ request("fecha_inicio") }}',
+                    fecha_fin: '{{ request("fecha_fin") }}'
+                });
+
+                fetch(`{{ route('collaborative-reports.chart.hours-by-employee') }}?${params}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const ctx = document.getElementById('chartByEmployee').getContext('2d');
+                        
+                        if (chartByEmployee) {
+                            chartByEmployee.destroy();
+                        }
+
+                        chartByEmployee = new Chart(ctx, {
+                            type: 'pie',
+                            data: data,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: data.title,
+                                        font: {
+                                            size: 16,
+                                            weight: 'bold'
+                                        }
+                                    },
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: {
+                                            padding: 20,
+                                            usePointStyle: true
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const value = context.parsed;
+                                                const total = data.total;
+                                                const percentage = ((value / total) * 100).toFixed(1);
+                                                return `${context.label}: ${value}h (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading employee chart:', error);
+                        const ctx = document.getElementById('chartByEmployee').getContext('2d');
+                        ctx.fillStyle = '#6B7280';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Error al cargar gráfico', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                    });
+            }
+
+            // Event listener para el selector de tipo
+            document.getElementById('chartTypeSelector').addEventListener('change', function() {
+                loadDirectionChart(this.value);
+            });
+
+            // Cargar gráficos iniciales
+            loadDirectionChart();
+            loadEmployeeChart();
         }
     </script>
 </x-app-layout>

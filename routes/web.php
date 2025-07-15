@@ -36,6 +36,19 @@ Route::middleware('auth')->group(function () {
         // Rutas de reportes colaborativos
         Route::get('/collaborative-reports', [CollaborativeReportController::class, 'index'])->name('collaborative-reports.index');
         Route::get('/collaborative-reports/export', [CollaborativeReportController::class, 'export'])->name('collaborative-reports.export');
+        
+        // APIs para autocompletado en reportes colaborativos
+        Route::get('/api/autocomplete/referencia', [CollaborativeReportController::class, 'autocompleteReferencia'])->name('api.autocomplete.referencia');
+        Route::get('/api/autocomplete/titulos', [CollaborativeReportController::class, 'autocompleteTitulos'])->name('api.autocomplete.titulos');
+        
+        // APIs para autocompletado en reportes generales
+        Route::get('/api/autocomplete/empleados', [ReportController::class, 'autocompleteEmpleados'])->name('api.autocomplete.empleados');
+        Route::get('/api/autocomplete/direcciones', [ReportController::class, 'autocompleteDirecciones'])->name('api.autocomplete.direcciones');
+        Route::get('/api/autocomplete/busqueda', [ReportController::class, 'autocompleteBusqueda'])->name('api.autocomplete.busqueda');
+        
+        // Rutas para gráficos de reportes colaborativos
+        Route::get('/collaborative-reports/chart/hours-by-direction', [CollaborativeReportController::class, 'chartHoursByDirectionAndType'])->name('collaborative-reports.chart.hours-by-direction');
+        Route::get('/collaborative-reports/chart/hours-by-employee', [CollaborativeReportController::class, 'chartHoursByEmployee'])->name('collaborative-reports.chart.hours-by-employee');
     });
 });
 
