@@ -1,0 +1,3 @@
+# Heroku PHP buildpack configuration
+composer.json
+package.json
