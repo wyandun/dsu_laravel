@@ -110,54 +110,9 @@ php artisan test
 
 # GitLab CI/CD Troubleshooting
 
-## Configuraciones Disponibles
+## Configuración Única Optimizada
 
-Hemos creado múltiples configuraciones de GitLab CI para diferentes escenarios:
-
-### 1. **`.gitlab-ci-production.yml`** (RECOMENDADO PARA PRODUCCIÓN)
-- Configuración completa con 3 stages: prepare, build, test
-- Manejo robusto de certificados SSL problemáticos
-- Cache optimizado para mejorar velocidad
-- Generación de todos los artefactos requeridos
-- Perfecto para entornos corporativos con certificados internos
-
-### 2. **`.gitlab-ci-ultra-simple.yml`** (PARA PRUEBAS RÁPIDAS)
-- Un solo job que hace todo
-- Mínima configuración
-- Ideal para debugging rápido
-
-### 3. **`.gitlab-ci-docker.yml`** (ALTERNATIVA CON DOCKER)
-- Usa Docker Compose existente
-- Evita problemas de dependencias del sistema
-- Más aislado y reproducible
-
-### 4. **`.gitlab-ci-no-ssl.yml`** (PARA SERCOP)
-- Configuración específica para SERCOP
-- Desactiva completamente verificación SSL
-- Usa repositorios HTTP cuando sea posible
-
-## Cómo Usar
-
-Para usar cualquiera de estas configuraciones:
-
-1. **Renombrar el archivo deseado a `.gitlab-ci.yml`:**
-```bash
-# Para producción (RECOMENDADO)
-mv .gitlab-ci-production.yml .gitlab-ci.yml
-
-# Para pruebas simples
-mv .gitlab-ci-ultra-simple.yml .gitlab-ci.yml
-
-# Para Docker
-mv .gitlab-ci-docker.yml .gitlab-ci.yml
-```
-
-2. **Commit y push:**
-```bash
-git add .gitlab-ci.yml
-git commit -m "Update GitLab CI configuration"
-git push
-```
+El proyecto usa **una sola configuración de GitLab CI** (`.gitlab-ci.yml`) optimizada para resolver todos los problemas comunes en entornos corporativos.
 
 ## Problemas Conocidos y Soluciones
 
@@ -166,7 +121,7 @@ git push
 curl: (60) SSL certificate problem: unable to get local issuer certificate
 ```
 
-**Solución aplicada en todas las configuraciones:**
+**✅ Solución aplicada automáticamente:**
 - `GIT_SSL_NO_VERIFY: "true"`
 - `composer config --global secure-http false`
 - `composer config --global disable-tls true`
@@ -177,7 +132,7 @@ curl: (60) SSL certificate problem: unable to get local issuer certificate
 vendor/, node_modules/, public/build/, .env not found
 ```
 
-**Solución en `.gitlab-ci-production.yml`:**
+**✅ Solución aplicada automáticamente:**
 - Job `prepare` dedicado para instalar dependencias
 - Artifacts explícitos en cada stage
 - Verificación de existencia de directorios
@@ -187,7 +142,7 @@ vendor/, node_modules/, public/build/, .env not found
 Failed to download composer
 ```
 
-**Solución aplicada:**
+**✅ Solución aplicada automáticamente:**
 - Descarga manual de Composer con `--disable-tls`
 - Fallback con curl usando `-k` (insecure)
 - Configuración global de Composer sin SSL
@@ -197,7 +152,7 @@ Failed to download composer
 npm ERR! network request failed
 ```
 
-**Solución aplicada:**
+**✅ Solución aplicada automáticamente:**
 - `npm config set registry http://registry.npmjs.org/`
 - `npm config set strict-ssl false`
 - Cache de npm en `/tmp/npm-cache`
