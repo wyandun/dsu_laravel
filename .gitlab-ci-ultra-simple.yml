@@ -1,0 +1,56 @@
+# GitLab CI/CD - Ultra Simple Configuration
+# Para resolver problemas de SSL y artefactos faltantes
+
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+  COMPOSER_ALLOW_SUPERUSER: 1
+  COMPOSER_NO_INTERACTION: 1
+
+stages:
+  - test
+
+# Job único que hace todo
+laravel_test:
+  stage: test
+  image: php:8.3-cli
+  before_script:
+    # Instalar dependencias básicas
+    - apt-get update -qq && apt-get install -y -qq git curl zip unzip nodejs npm sqlite3 libzip-dev
+    - docker-php-ext-install zip pdo_sqlite
+    
+    # Instalar Composer sin SSL
+    - curl -k -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --disable-tls
+    
+    # Configurar herramientas sin SSL
+    - composer config --global secure-http false
+    - composer config --global disable-tls true
+    - npm config set strict-ssl false
+    - npm config set registry http://registry.npmjs.org/
+    
+  script:
+    # Instalar dependencias
+    - composer install --no-scripts --prefer-dist
+    - npm ci
+    
+    # Configurar aplicación
+    - cp .env.example .env
+    - php artisan key:generate
+    - touch database/database.sqlite
+    - php artisan migrate --force
+    
+    # Compilar assets
+    - npm run build
+    
+    # Ejecutar tests
+    - php artisan test
+    
+  artifacts:
+    name: "laravel-app-$CI_COMMIT_SHORT_SHA"
+    expire_in: 1 hour
+    when: always
+    paths:
+      - vendor/
+      - node_modules/
+      - public/build/
+      - .env
+      - storage/logs/

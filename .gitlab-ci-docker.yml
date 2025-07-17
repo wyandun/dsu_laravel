@@ -1,0 +1,47 @@
+# GitLab CI/CD usando Docker Compose
+# Alternativa para evitar problemas de SSL y dependencias
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  GIT_SSL_NO_VERIFY: "true"
+
+services:
+  - docker:20.10.16-dind
+
+stages:
+  - test
+
+docker_test:
+  stage: test
+  image: docker:20.10.16
+  before_script:
+    - apk add --no-cache docker-compose
+    - docker --version
+    - docker-compose --version
+  script:
+    # Usar el docker-compose existente para testing
+    - cp .env.example .env
+    - echo "APP_KEY=" >> .env
+    - echo "DB_CONNECTION=sqlite" >> .env
+    - echo "DB_DATABASE=/var/www/database/database.sqlite" >> .env
+    
+    # Construir y ejecutar tests usando Docker
+    - docker-compose -f docker-compose.yml up -d --build
+    - docker-compose exec -T app composer install --no-scripts --prefer-dist
+    - docker-compose exec -T app php artisan key:generate
+    - docker-compose exec -T app touch database/database.sqlite
+    - docker-compose exec -T app php artisan migrate --force
+    - docker-compose exec -T app npm ci
+    - docker-compose exec -T app npm run build
+    - docker-compose exec -T app php artisan test
+    
+  after_script:
+    - docker-compose down
+    
+  artifacts:
+    name: "docker-test-$CI_COMMIT_SHORT_SHA"
+    expire_in: 1 hour
+    when: always
+    paths:
+      - storage/logs/
