@@ -1,101 +1,109 @@
 # Troubleshooting GitLab CI/CD
 
-## Problemas Comunes y Soluciones
+## ❌ Error SSL Crítico - SERCOP
 
-### 1. Error de Artifacts "no matching files"
-
-**Problema**: 
+### Problema Actual:
 ```
-WARNING: vendor/: no matching files
-WARNING: node_modules/: no matching files  
-WARNING: public/build/: no matching files
+curl: (77) error setting certificate file: /etc/gitlab-runner/certs/gitlab.sercop.gob.ec.crt
 ```
 
-**Causa**: Los directorios no se crearon durante el build.
+**Causa**: GitLab Runner está configurado con certificados SSL corporativos que fallan.
 
-**Soluciones**:
+## 🚀 SOLUCIONES DISPONIBLES
 
-#### Opción A: Usar configuración simple
-Renombra `.gitlab-ci-simple.yml` a `.gitlab-ci.yml`:
+### Opción 1: Sin SSL (RECOMENDADO para SERCOP)
 ```bash
 mv .gitlab-ci.yml .gitlab-ci-backup.yml
-mv .gitlab-ci-simple.yml .gitlab-ci.yml
+mv .gitlab-ci-no-ssl.yml .gitlab-ci.yml
 ```
+- ✅ Deshabilita completamente SSL/TLS
+- ✅ Múltiples métodos de instalación de Composer
+- ✅ Configuración específica para entornos corporativos
 
-#### Opción B: Usar configuración mínima (solo PHP)
-Renombra `.gitlab-ci-minimal.yml` a `.gitlab-ci.yml`:
+### Opción 2: Imagen con Composer Preinstalado
 ```bash
 mv .gitlab-ci.yml .gitlab-ci-backup.yml
-mv .gitlab-ci-minimal.yml .gitlab-ci.yml
+mv .gitlab-ci-composer-image.yml .gitlab-ci.yml
+```
+- ✅ Usa `composer:2.6` image
+- ✅ No necesita instalar Composer
+- ✅ Más rápido
+
+### Opción 3: Imagen Laravel Oficial
+```bash
+mv .gitlab-ci.yml .gitlab-ci-backup.yml
+mv .gitlab-ci-laravel-image.yml .gitlab-ci.yml
+```
+- ✅ Usa `laravelsail/php82-composer:latest`
+- ✅ Todo preconfigurado para Laravel
+
+### Opción 4: Descarga Manual de Composer
+```bash
+mv .gitlab-ci.yml .gitlab-ci-backup.yml
+mv .gitlab-ci-manual-composer.yml .gitlab-ci.yml
+```
+- ✅ Descarga Composer desde GitHub releases
+- ✅ No usa repositorio oficial
+
+## 📁 Archivos de Configuración Disponibles
+
+1. **`.gitlab-ci-no-ssl.yml`** - ⭐ **RECOMENDADO PARA SERCOP**
+2. **`.gitlab-ci-composer-image.yml`** - Imagen Composer
+3. **`.gitlab-ci-laravel-image.yml`** - Imagen Laravel Sail  
+4. **`.gitlab-ci-manual-composer.yml`** - Descarga manual
+5. **`.gitlab-ci-final.yml`** - Configuración optimizada (puede fallar SSL)
+6. **`.gitlab-ci.yml`** - Configuración completa (problemas SSL)
+
+## 🔧 Configuración SSL para SERCOP
+
+La opción **sin SSL** incluye:
+```yaml
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+  CURL_CA_BUNDLE: ""
+  SSL_VERIFY: "false"
+  COMPOSER_DISABLE_TLS: "true"
+
+before_script:
+  - rm -f /etc/gitlab-runner/certs/gitlab.sercop.gob.ec.crt || true
+  - echo "insecure" >> ~/.curlrc || true
+  - composer config --global disable-tls true
 ```
 
-### 2. Error 503 Service Unavailable en repositorios
+## ⚡ Solución Inmediata
 
-**Problema**: No se pueden descargar paquetes de Debian.
-
-**Solución**: El pipeline ya está configurado con repositorios alternativos y timeouts.
-
-### 3. Problemas SSL/TLS
-
-**Problema**: Certificados no reconocidos.
-
-**Solución**: Variables ya configuradas:
-- `GIT_SSL_NO_VERIFY: "true"`
-- `CURL_CA_BUNDLE: ""`
-- `NODE_TLS_REJECT_UNAUTHORIZED: "0"`
-
-### 4. Node.js no disponible
-
-**Problema**: No se puede instalar Node.js.
-
-**Solución**: Use la configuración mínima que solo usa PHP.
-
-## Archivos de Configuración Disponibles
-
-1. **`.gitlab-ci.yml`** - Configuración completa (puede fallar)
-2. **`.gitlab-ci-simple.yml`** - Configuración robusta con fallbacks
-3. **`.gitlab-ci-minimal.yml`** - Solo PHP, sin Node.js
-
-## Scripts Disponibles
-
-1. **`scripts/gitlab-build.sh`** - Script personalizado con logging detallado
-
-## Comandos de Debug
-
-### Verificar que funciona localmente:
+**Para resolver AHORA:**
 ```bash
+# Usar configuración sin SSL
+mv .gitlab-ci.yml .gitlab-ci-backup.yml
+mv .gitlab-ci-no-ssl.yml .gitlab-ci.yml
+git add .gitlab-ci.yml
+git commit -m "Fix: Configuración SSL para entorno SERCOP"
+git push
+```
+
+## 🧪 Verificación Local
+
+```bash
+# Verificar que funciona sin SSL
+composer config --global disable-tls true
+composer config --global secure-http false
 composer install
-php artisan key:generate
 php artisan test
 ```
 
-### Simular entorno CI:
-```bash
-# Crear entorno limpio
-rm -rf vendor/ node_modules/ bootstrap/cache/*
-cp .env.example .env
+## 📊 Estado de Configuraciones
 
-# Instalar dependencias
-composer install --no-dev --optimize-autoloader
-php artisan key:generate
-php artisan migrate --force
-php artisan test
-```
+- 🔴 `.gitlab-ci.yml` - Falla por SSL de SERCOP
+- 🟢 `.gitlab-ci-no-ssl.yml` - ✅ Soluciona problema SSL
+- 🟢 `.gitlab-ci-composer-image.yml` - ✅ Evita instalación Composer
+- 🟢 `.gitlab-ci-laravel-image.yml` - ✅ Todo preconfigurado
+- 🟡 `.gitlab-ci-manual-composer.yml` - ✅ Descarga alternativa
 
-## Recomendaciones
+## 🎯 Recomendación Final
 
-1. **Para desarrollo rápido**: Use `.gitlab-ci-minimal.yml`
-2. **Para producción**: Use `.gitlab-ci-simple.yml`
-3. **Para debugging**: Use `.gitlab-ci.yml` con logs completos
-
-## Variables de Entorno Requeridas en GitLab
-
-- `MYSQL_DATABASE`: testing
-- `MYSQL_ROOT_PASSWORD`: testing  
-- `MYSQL_USER`: testing
-- `MYSQL_PASSWORD`: testing
-- `GIT_SSL_NO_VERIFY`: true
-
-## Contacto
-
-Si persisten los problemas, revisar logs completos del pipeline y usar la configuración mínima.
+**Para SERCOP:** Usar `.gitlab-ci-no-ssl.yml` porque:
+- ✅ Maneja certificados corporativos
+- ✅ Múltiples fallbacks para Composer
+- ✅ Configuración SSL específica para entornos corporativos
+- ✅ Jobs de emergencia incluidos

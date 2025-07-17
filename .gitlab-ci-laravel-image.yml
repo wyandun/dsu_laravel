@@ -1,0 +1,45 @@
+# GitLab CI/CD - Imagen Laravel Oficial
+image: laravelsail/php82-composer:latest
+
+variables:
+  MYSQL_DATABASE: testing
+  MYSQL_ROOT_PASSWORD: testing
+  MYSQL_USER: testing
+  MYSQL_PASSWORD: testing
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: testing
+  DB_USERNAME: testing
+  DB_PASSWORD: testing
+
+services:
+  - mysql:8.0
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+
+stages:
+  - test
+
+test_laravel_image:
+  stage: test
+  script:
+    - echo "🧪 Testing with Laravel Sail image..."
+    
+    # La imagen ya tiene PHP y Composer configurados
+    - php --version
+    - composer --version
+    
+    # Configurar entorno
+    - cp .env.example .env
+    - php artisan key:generate
+    
+    # Instalar dependencias
+    - composer install --no-interaction --prefer-dist --optimize-autoloader
+    
+    # Esperar MySQL y ejecutar tests
+    - php artisan migrate --force
+    - php artisan test
