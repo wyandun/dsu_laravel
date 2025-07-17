@@ -1,0 +1,38 @@
+# Configuración GitLab CI mínima - Solo PHP
+image: php:8.2-fpm
+
+variables:
+  MYSQL_DATABASE: testing
+  MYSQL_ROOT_PASSWORD: testing
+  MYSQL_USER: testing
+  MYSQL_PASSWORD: testing
+  GIT_SSL_NO_VERIFY: "true"
+
+services:
+  - mysql:8.0
+
+before_script:
+  # Instalación mínima
+  - apt-get update -qq || true
+  - apt-get install -y -qq git curl unzip libzip-dev || true
+  
+  # PHP extensions mínimas
+  - docker-php-ext-install pdo_mysql zip || true
+  
+  # Composer
+  - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  
+  # Environment
+  - cp .env.example .env
+  - echo "DB_CONNECTION=mysql" >> .env
+  - echo "DB_HOST=mysql" >> .env
+  - echo "DB_DATABASE=testing" >> .env
+  - echo "DB_USERNAME=testing" >> .env
+  - echo "DB_PASSWORD=testing" >> .env
+
+test_only:
+  script:
+    - composer install --no-dev --optimize-autoloader
+    - php artisan key:generate
+    - php artisan migrate --force
+    - php artisan test

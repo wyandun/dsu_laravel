@@ -1,0 +1,13 @@
+# Configuración para evitar problemas de SSL en GitLab CI
+# Este archivo ayuda a resolver problemas con certificados autofirmados
+
+# Variables de entorno para Docker
+ENV CURL_CA_BUNDLE=""
+ENV GIT_SSL_NO_VERIFY=true
+ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+
+# Configuración de Git para ignorar verificación SSL (solo para desarrollo)
+RUN git config --global http.sslVerify false
+
+# Instalar certificados CA actualizados
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
