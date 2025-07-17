@@ -51,8 +51,7 @@
         ],
         "post-install-cmd": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan optimize:clear",
-            "@php artisan config:cache"
+            "@php artisan package:discover --ansi"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",

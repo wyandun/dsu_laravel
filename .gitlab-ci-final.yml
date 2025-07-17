@@ -1,0 +1,102 @@
+# GitLab CI/CD Configuración Final - Robusta y Simple
+image: php:8.2-fpm
+
+variables:
+  MYSQL_DATABASE: testing
+  MYSQL_ROOT_PASSWORD: testing
+  MYSQL_USER: testing
+  MYSQL_PASSWORD: testing
+  GIT_SSL_NO_VERIFY: "true"
+  CURL_CA_BUNDLE: ""
+  NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
+services:
+  - name: mysql:8.0
+    alias: mysql
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+
+stages:
+  - build
+  - test
+
+before_script:
+  # Configuración SSL y Git
+  - git config --global http.sslVerify false
+  - export GIT_SSL_NO_VERIFY=true
+  - export CURL_CA_BUNDLE=""
+  
+  # Repositorios alternativos
+  - echo "deb http://ftp.debian.org/debian bookworm main" > /etc/apt/sources.list
+  - echo "deb http://ftp.debian.org/debian bookworm-updates main" >> /etc/apt/sources.list
+  - echo "deb http://security.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list
+  
+  # Dependencias del sistema
+  - timeout 300 apt-get update -qq || apt-get update -qq --allow-releaseinfo-change || true
+  - apt-get install -y -qq git curl unzip libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev ca-certificates || true
+  
+  # Extensiones PHP
+  - docker-php-ext-configure gd --with-freetype --with-jpeg || true
+  - docker-php-ext-install pdo_mysql zip gd || true
+  
+  # Instalar Composer
+  - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --disable-tls || curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  - composer config --global disable-tls true || true
+  - composer config --global secure-http false || true
+  
+  # Configurar entorno
+  - cp .env.example .env
+  - echo "DB_CONNECTION=mysql" >> .env
+  - echo "DB_HOST=mysql" >> .env
+  - echo "DB_PORT=3306" >> .env
+  - echo "DB_DATABASE=testing" >> .env
+  - echo "DB_USERNAME=testing" >> .env
+  - echo "DB_PASSWORD=testing" >> .env
+  - echo "CACHE_DRIVER=array" >> .env
+  - echo "SESSION_DRIVER=array" >> .env
+  - echo "QUEUE_CONNECTION=sync" >> .env
+
+build:
+  stage: build
+  script:
+    - echo "🔧 Building application..."
+    
+    # Instalar dependencias PHP
+    - composer install --prefer-dist --no-ansi --no-interaction --no-progress --optimize-autoloader
+    
+    # Generar key de aplicación
+    - php artisan key:generate
+    
+    # Crear archivos/directorios necesarios para artifacts
+    - mkdir -p vendor public/build bootstrap/cache
+    - test -d vendor && echo "✅ vendor OK" || echo "❌ vendor missing"
+    
+  artifacts:
+    paths:
+      - vendor/
+      - .env
+    expire_in: 1 hour
+
+test:
+  stage: test
+  dependencies:
+    - build
+  script:
+    - echo "🧪 Running tests..."
+    - php artisan migrate --force
+    - php artisan test
+
+# Job adicional sin dependencias (backup)
+test_standalone:
+  stage: test
+  script:
+    - echo "🧪 Standalone test (backup)..."
+    - composer install --prefer-dist --no-ansi --no-interaction --no-progress --optimize-autoloader
+    - php artisan key:generate
+    - php artisan migrate --force
+    - php artisan test
+  when: manual
+  allow_failure: true

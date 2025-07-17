@@ -71,6 +71,9 @@ before_script:
   - echo "DB_DATABASE=testing" >> .env
   - echo "DB_USERNAME=testing" >> .env
   - echo "DB_PASSWORD=testing" >> .env
+  - echo "CACHE_DRIVER=array" >> .env
+  - echo "SESSION_DRIVER=array" >> .env
+  - echo "QUEUE_CONNECTION=sync" >> .env
 
 # Job de construcción
 build:
@@ -78,6 +81,13 @@ build:
   script:
     # Instalar dependencias PHP
     - composer install --prefer-dist --no-ansi --no-interaction --no-progress --optimize-autoloader
+    
+    # Generar clave de aplicación ANTES de otros comandos
+    - php artisan key:generate
+    
+    # Crear base de datos SQLite como fallback
+    - mkdir -p database
+    - touch database/database.sqlite || true
     
     # Intentar instalar Node.js y dependencias
     - |
@@ -103,18 +113,14 @@ build:
         echo "⚠️ No se pudo instalar Node.js, omitiendo construcción de assets"
       fi
     
-    # Generar clave de aplicación
-    - php artisan key:generate
+    # Limpiar cache (sin fallar si no funciona)
+    - php artisan config:clear || true
+    - php artisan cache:clear || true
+    - php artisan view:clear || true
+    - php artisan route:clear || true
     
-    # Limpiar cache antes de optimizar
-    - php artisan config:clear || echo "Config clear failed, continuing..."
-    - php artisan cache:clear || echo "Cache clear failed, continuing..."
-    - php artisan view:clear || echo "View clear failed, continuing..."
-    
-    # Optimizar aplicación (opcional, puede fallar sin Node.js)
-    - php artisan config:cache || echo "Config cache failed, continuing..."
-    - php artisan route:cache || echo "Route cache failed, continuing..."
-    - php artisan view:cache || echo "View cache failed, continuing..."
+    # Optimizar para CI (sin fallar si no funciona)
+    - php artisan config:cache || true
     
     # Verificar qué directorios se crearon exitosamente
     - echo "📊 Verificando directorios creados:"
